@@ -5,9 +5,19 @@ namespace App\Checkers;
 class Composer extends Github
 {
     /**
-     * Github tag tar archive url.
+     * Composer archive url.
      *
      * @var string
      */
-    protected $archiveUrl = 'https://github.com/%s/releases/download/%s/composer.phar';
+    protected $archiveUrl = 'https://getcomposer.org/download/%s/composer.phar';
+
+    /**
+     * Get the archive url.
+     *
+     * @return string
+     */
+    protected function archiveUrl()
+    {
+        return sprintf($this->archiveUrl, $this->version);
+    }
 }
