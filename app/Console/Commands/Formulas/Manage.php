@@ -64,10 +64,36 @@ class Manage extends Formula
         $checker = $this->ask('Checker');
 
         if (! class_exists("App\\Checkers\\$checker")) {
-            return $this->error('Checker not exists.');
+            return $this->error('Checker dost not exist.');
         }
 
-        $this->formula->create(compact('name', 'url', 'checker'));
+        $git_repo = $this->askRepoPath();
+
+        if (false === $git_repo) {
+            return $this->error('Repository dost not exist.');
+        }
+
+        $this->formula->create(compact('name', 'url', 'checker', 'git_repo'));
+    }
+
+    /**
+     * Ask for repository path.
+     *
+     * @return null|false|string
+     */
+    protected function askRepoPath()
+    {
+        $repo = $this->ask('Local homebrew repository path', 'null');
+
+        if ('null' === $repo) {
+            return null;
+        } elseif (starts_with($repo, '~/')) {
+            $repo = $_SERVER['HOME'].'/'.substr($repo, 2);
+        } elseif (starts_with($repo, '.')) {
+            $repo = base_path($repo);
+        }
+
+        return realpath($repo);
     }
 
     /**
@@ -84,12 +110,17 @@ class Manage extends Formula
         }
     }
 
+    /**
+     * Backup formulas.
+     *
+     * @return void
+     */
     protected function backup()
     {
         $path = $this->ask('Path to save backup file');
 
         if (is_dir($path)) {
-            $path .= '/homebrew-formula-updater.json';
+            $path .= '/homebrew-updater.json';
         }
 
         file_put_contents($path, $this->formula->all()->toJson(), LOCK_EX);
@@ -97,6 +128,11 @@ class Manage extends Formula
         $this->info('Backup succeed!');
     }
 
+    /**
+     * Restore formulas from file.
+     *
+     * @return void
+     */
     protected function restore()
     {
         $path = $this->ask('Backup file');
