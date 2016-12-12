@@ -9,7 +9,7 @@ class Manage extends Formula
      *
      * @var string
      */
-    protected $signature = 'formula:manage {--add} {--delete} {--backup} {--restore}';
+    protected $signature = 'formula:manage {--add} {--delete} {--backup} {--restore} {--full}';
 
     /**
      * The console command description.
@@ -47,7 +47,31 @@ class Manage extends Formula
 
         $formulas = $this->formula->all($headers);
 
+        if (! $this->option('full')) {
+            $formulas->each(function ($formula) {
+                $this->shorten($formula);
+            });
+        }
+
         $this->table($headers, $formulas);
+    }
+
+    /**
+     * Shorten formulas information.
+     *
+     * @param \App\Formula $formula
+     *
+     * @return void
+     */
+    protected function shorten(\App\Formula $formula)
+    {
+        $f = $formula->getAttributes();
+
+        $formula->setAttribute('name', substr($f['name'], strrpos($f['name'], '/') + 1));
+
+        if (is_a($this->checker($f['checker']), $this->checker('Github'), true)) {
+            $formula->setAttribute('url', str_replace('https://github.com/', '', $f['url']));
+        }
     }
 
     /**
@@ -63,7 +87,7 @@ class Manage extends Formula
 
         $checker = $this->ask('Checker');
 
-        if (! class_exists("App\\Checkers\\$checker")) {
+        if (! class_exists($this->checker($checker))) {
             return $this->error('Checker dost not exist.');
         }
 

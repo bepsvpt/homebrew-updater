@@ -24,6 +24,27 @@ abstract class Formula extends Command
     }
 
     /**
+     * Instance the checker or get class name.
+     *
+     * @param \App\Formula|string $formula
+     * @param bool $instance
+     *
+     * @return \App\Checkers\Checker|string
+     */
+    protected function checker($formula, $instance = true)
+    {
+        $class = 'App\Checkers\\';
+
+        if (is_string($formula)) {
+            return $class.$formula;
+        }
+
+        $class .= $formula->getAttribute('checker');
+
+        return $instance ? new $class($formula) : $class;
+    }
+
+    /**
      * Execute the console command.
      */
     abstract public function handle();

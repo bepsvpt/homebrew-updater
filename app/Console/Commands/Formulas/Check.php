@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands\Formulas;
 
-use App\Checkers\Checker;
 use Carbon\Carbon;
 use Composer\Semver\Comparator;
 
@@ -63,7 +62,7 @@ class Check extends Formula
      */
     protected function watchdog(\App\Formula $formula)
     {
-        $checker = $this->reflect($formula);
+        $checker = $this->checker($formula);
 
         $latest = $checker->latest();
 
@@ -74,19 +73,5 @@ class Check extends Formula
         }
 
         return compact('version', 'archive', 'hash');
-    }
-
-    /**
-     * Reflect the checker.
-     *
-     * @param \App\Formula $formula
-     *
-     * @return Checker
-     */
-    protected function reflect(\App\Formula $formula)
-    {
-        $class = 'App\Checkers\\'.$formula->getAttribute('checker');
-
-        return new $class($formula);
     }
 }
