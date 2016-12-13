@@ -2,25 +2,61 @@
 
 namespace App\Checkers;
 
+use App\Formula;
+use Carbon\Carbon;
+use DB;
+use Github\ResultPager;
+use GuzzleHttp\Client as Guzzle;
+use GuzzleHttp\Promise;
 use League\Uri\Schemes\Http;
+use Psr\Http\Message\ResponseInterface;
 
 class Github extends Checker
 {
-    /**
-     * Github tag api.
-     *
-     * @reference https://developer.github.com/v3/git/tags/#get-a-tag
-     *
-     * @var string
-     */
-    protected $tagApi = 'https://api.github.com/repos/%s/tags';
-
     /**
      * Github tag tar archive url.
      *
      * @var string
      */
     protected $archiveUrl = 'https://github.com/%s/archive/%s.tar.gz';
+
+    /**
+     * @var \Github\Client
+     */
+    protected $github;
+
+    /**
+     * @var Guzzle
+     */
+    protected $guzzle;
+
+    /**
+     * Constructor.
+     *
+     * @param Formula $formula
+     */
+    public function __construct(Formula $formula)
+    {
+        parent::__construct($formula);
+
+        $this->github = new \Github\Client;
+        $this->github->authenticate(config('github.token'), 'http_token');
+
+        $this->guzzle = new Guzzle(['headers' => $this->headers()]);
+    }
+
+    /**
+     * Get guzzle request headers.
+     *
+     * @return array
+     */
+    protected function headers()
+    {
+        return [
+            'Authorization' => 'token '.config('github.token'),
+            'Time-Zone' => 'UTC',
+        ];
+    }
 
     /**
      * Transform version name if need.
@@ -46,17 +82,111 @@ class Github extends Checker
      */
     public function latest()
     {
-        $url = sprintf($this->tagApi, $this->repo());
-
-        $content = $this->fetch($url);
-
-        $tags = json_decode($content, true);
+        $tags = $this->tags();
 
         if (empty($tags)) {
             return null;
         }
 
         return $this->version = array_first($tags)['name'];
+    }
+
+    protected function tags()
+    {
+        $tags = (new ResultPager($this->github))
+            ->fetchAll($this->github->repos(), 'tags', $this->repo(true));
+
+        $this->appendDate($tags);
+
+        usort($tags, function ($a, $b) {
+            return $b['date'] <=> $a['date'];
+        });
+
+        return $tags;
+    }
+
+    protected function appendDate(array &$tags)
+    {
+        $dates = DB::table('commits')
+            ->where('formula_id', $this->formula->getKey())
+            ->whereIn('sha', array_column(array_column($tags, 'commit'), 'sha'))
+            ->get()
+            ->pluck('committed_at', 'sha')
+            ->toArray();
+
+        foreach ($tags as $tag) {
+            if (! isset($dates[$tag['commit']['sha']])) {
+                $urls[$tag['commit']['sha']] = $tag['commit']['url'];
+            }
+        }
+
+        $dates = array_merge($dates, $this->dates($urls ?? []));
+
+        foreach ($tags as &$tag) {
+            $tag['date'] = $dates[$tag['commit']['sha']];
+        }
+    }
+
+    /**
+     * Get commits date info.
+     *
+     * @param array $urls
+     *
+     * @return array
+     */
+    protected function dates(array $urls)
+    {
+        $dates = [];
+
+        foreach (array_chunk($urls, 15, true) as $chunk) {
+            $promises = array_map([$this->guzzle, 'getAsync'], $chunk);
+
+            $dates += array_map([$this, 'parse'], Promise\unwrap($promises));
+        }
+
+        $this->insert($dates);
+
+        return $dates;
+    }
+
+    /**
+     * Parse commit date from http response.
+     *
+     * @param ResponseInterface $response
+     *
+     * @return string
+     */
+    protected function parse(ResponseInterface $response)
+    {
+        $content = $response->getBody()->getContents();
+
+        $commit = json_decode($content, true);
+
+        $date = $commit['commit']['author']['date'];
+
+        return Carbon::parse($date, 'UTC')->toDateTimeString();
+    }
+
+    /**
+     * Insert new commits to database.
+     *
+     * @param array $commits
+     *
+     * @return void
+     */
+    protected function insert(array $commits)
+    {
+        foreach ($commits as $sha => $date) {
+            $records[] = [
+                'formula_id' => $this->formula->getKey(),
+                'sha' => $sha,
+                'committed_at' => $date,
+            ];
+        }
+
+        foreach (array_chunk($records ?? [], 30) as $chunk) {
+            DB::table('commits')->insert($chunk);
+        }
     }
 
     /**
@@ -92,12 +222,18 @@ class Github extends Checker
     /**
      * Get repository name.
      *
-     * @return string
+     * @param bool $explode
+     *
+     * @return array|string
      */
-    protected function repo()
+    protected function repo($explode = false)
     {
         $url = Http::createFromString($this->formula->getAttribute('url'));
 
-        return substr($url->getPath(), 1);
+        $repo = substr($url->getPath(), 1);
+
+        return $explode
+            ? array_combine(['user', 'name'], explode('/', $repo))
+            : $repo;
     }
 }
