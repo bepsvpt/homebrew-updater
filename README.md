@@ -1,6 +1,8 @@
 # Homebrew Updater
 
-Automatic checking formula new version.
+[![StyleCI](https://styleci.io/repos/76054785/shield)](https://styleci.io/repos/76054785)
+
+Automatically check release of homebrew formulas.
 
 ## Requirements
 
