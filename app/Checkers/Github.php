@@ -40,7 +40,7 @@ class Github extends Checker
         parent::__construct($formula);
 
         $this->github = new \Github\Client;
-        $this->github->authenticate(config('github.token'), 'http_token');
+        $this->github->authenticate(config('services.github.token'), 'http_token');
 
         $this->guzzle = new Guzzle(['headers' => $this->headers()]);
     }
@@ -53,7 +53,7 @@ class Github extends Checker
     protected function headers()
     {
         return [
-            'Authorization' => 'token '.config('github.token'),
+            'Authorization' => 'token '.config('services.github.token'),
             'Time-Zone' => 'UTC',
         ];
     }
