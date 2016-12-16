@@ -27,6 +27,6 @@ class Model extends Eloquent
      */
     public static function getTableName()
     {
-        return ((new static)->getTable());
+        return (new static)->getTable();
     }
 }
