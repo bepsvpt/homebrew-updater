@@ -11,7 +11,7 @@
 |
 */
 
-$factory->define(App\Formula::class, function (Faker\Generator $faker) {
+$factory->define(App\Models\Formula::class, function (Faker\Generator $faker) {
     return [
         'name' => $faker->name,
         'url' => $faker->url,

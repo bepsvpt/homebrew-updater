@@ -17,7 +17,7 @@ class AppServiceProvider extends ServiceProvider
             $this->app->register(\Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider::class);
         }
 
-        \App\Formula::observe(\App\Observers\FormulaObserver::class);
+        \App\Models\Formula::observe(\App\Observers\FormulaObserver::class);
     }
 
     /**

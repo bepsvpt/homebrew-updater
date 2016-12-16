@@ -2,9 +2,11 @@
 
 namespace App\Checkers;
 
-use App\Formula;
+use App\Models\Commit;
+use App\Models\Formula;
 use Carbon\Carbon;
 use DB;
+use Github\Client as GithubClient;
 use Github\ResultPager;
 use GuzzleHttp\Client as Guzzle;
 use GuzzleHttp\Promise;
@@ -21,7 +23,7 @@ class Github extends Checker
     protected $archiveUrl = 'https://github.com/%s/archive/%s.tar.gz';
 
     /**
-     * @var \Github\Client
+     * @var GithubClient
      */
     protected $github;
 
@@ -39,14 +41,14 @@ class Github extends Checker
     {
         parent::__construct($formula);
 
-        $this->github = new \Github\Client;
+        $this->github = new GithubClient;
         $this->github->authenticate(config('services.github.token'), 'http_token');
 
         $this->guzzle = new Guzzle(['headers' => $this->headers()]);
     }
 
     /**
-     * Get guzzle request headers.
+     * Guzzle request headers.
      *
      * @return array
      */
@@ -54,7 +56,7 @@ class Github extends Checker
     {
         return [
             'Authorization' => 'token '.config('services.github.token'),
-            'Time-Zone' => 'UTC',
+            'Time-Zone' => config('app.timezone'),
         ];
     }
 
@@ -76,21 +78,28 @@ class Github extends Checker
     }
 
     /**
-     * Get repository latest version.
+     * Repository latest version.
      *
      * @return string|null
      */
     public function latest()
     {
-        $tags = $this->tags();
+        if (! is_null($this->version)) {
+            return $this->version;
+        }
 
-        if (empty($tags)) {
+        if (empty($tags = $this->tags())) {
             return null;
         }
 
         return $this->version = array_first($tags)['name'];
     }
 
+    /**
+     * Repository tags.
+     *
+     * @return array
+     */
     protected function tags()
     {
         $tags = (new ResultPager($this->github))
@@ -105,10 +114,17 @@ class Github extends Checker
         return $tags;
     }
 
+    /**
+     * Append date information to tags.
+     *
+     * @param array $tags
+     *
+     * @return void
+     */
     protected function appendDate(array &$tags)
     {
-        $dates = DB::table('commits')
-            ->where('formula_id', $this->formula->getKey())
+        $dates = DB::table(Commit::getTableName())
+            ->where($this->formula->commits()->getPlainForeignKey(), $this->formula->getKey())
             ->whereIn('sha', array_column(array_column($tags, 'commit'), 'sha'))
             ->get()
             ->pluck('committed_at', 'sha')
@@ -128,7 +144,7 @@ class Github extends Checker
     }
 
     /**
-     * Get commits date info.
+     * Commits date information.
      *
      * @param array $urls
      *
@@ -150,7 +166,7 @@ class Github extends Checker
     }
 
     /**
-     * Parse commit date from http response.
+     * Parse commit date from response.
      *
      * @param ResponseInterface $response
      *
@@ -164,7 +180,7 @@ class Github extends Checker
 
         $date = $commit['commit']['author']['date'];
 
-        return Carbon::parse($date, 'UTC')->toDateTimeString();
+        return Carbon::parse($date, config('app.timezone'))->toDateTimeString();
     }
 
     /**
@@ -176,21 +192,23 @@ class Github extends Checker
      */
     protected function insert(array $commits)
     {
+        $foreignKey = $this->formula->commits()->getPlainForeignKey();
+
         foreach ($commits as $sha => $date) {
             $records[] = [
-                'formula_id' => $this->formula->getKey(),
+                $foreignKey => $this->formula->getKey(),
                 'sha' => $sha,
                 'committed_at' => $date,
             ];
         }
 
         foreach (array_chunk($records ?? [], 30) as $chunk) {
-            DB::table('commits')->insert($chunk);
+            DB::table(Commit::getTableName())->insert($chunk);
         }
     }
 
     /**
-     * Get latest archive info.
+     * Latest archive information.
      *
      * @return array
      */

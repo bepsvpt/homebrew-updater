@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Formula;
+use App\Models\Formula;
 use Illuminate\Notifications\Messages\SlackAttachment;
 use Illuminate\Notifications\Messages\SlackMessage;
 use Illuminate\Notifications\Notification;
@@ -12,11 +12,9 @@ class FormulaReleased extends Notification
     /**
      * Get the notification's delivery channels.
      *
-     * @param  mixed  $notifiable
-     *
      * @return array
      */
-    public function via($notifiable)
+    public function via()
     {
         return ['slack'];
     }

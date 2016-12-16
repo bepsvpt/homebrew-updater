@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Formula;
+use App\Models\Formula;
 use Illuminate\Queue\SerializesModels;
 use SebastianBergmann\Git\Git;
 use TQ\Git\Repository\Repository;

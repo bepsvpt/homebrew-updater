@@ -1,8 +1,7 @@
 <?php
 
-namespace App;
+namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Notifiable;
 
 class Formula extends Model
@@ -15,13 +14,6 @@ class Formula extends Model
      * @var bool
      */
     public $timestamps = false;
-
-    /**
-     * The attributes that aren't mass assignable.
-     *
-     * @var array
-     */
-    protected $guarded = [];
 
     /**
      * The attributes that should be mutated to dates.
@@ -38,5 +30,15 @@ class Formula extends Model
     public function routeNotificationForSlack()
     {
         return config('services.slack.url');
+    }
+
+    /**
+     * Get the commits for the formula.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function commits()
+    {
+        return $this->hasMany(Commit::class);
     }
 }

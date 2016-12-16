@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands\Formulas;
 
+use DB;
+
 class Manage extends Formula
 {
     /**
@@ -59,11 +61,11 @@ class Manage extends Formula
     /**
      * Shorten formulas information.
      *
-     * @param \App\Formula $formula
+     * @param \App\Models\Formula $formula
      *
      * @return void
      */
-    protected function shorten(\App\Formula $formula)
+    protected function shorten(\App\Models\Formula $formula)
     {
         $f = $formula->getAttributes();
 
@@ -167,9 +169,7 @@ class Manage extends Formula
 
         $formulas = json_decode(file_get_contents($path), true);
 
-        foreach ($formulas as $formula) {
-            $this->formula->insert($formula);
-        }
+        DB::table($this->formula->getTable())->insert($formulas);
 
         $this->info('Restore succeed!');
     }

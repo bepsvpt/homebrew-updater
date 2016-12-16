@@ -1,8 +1,6 @@
 <?php
 
-namespace App;
-
-use Illuminate\Database\Eloquent\Model;
+namespace App\Models;
 
 class Commit extends Model
 {
@@ -35,16 +33,19 @@ class Commit extends Model
     public $timestamps = false;
 
     /**
-     * The attributes that aren't mass assignable.
-     *
-     * @var array
-     */
-    protected $guarded = [];
-
-    /**
      * The attributes that should be mutated to dates.
      *
      * @var array
      */
     protected $dates = ['committed_at'];
+
+    /**
+     * Get the formula that owns the commit.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function formula()
+    {
+        return $this->belongsTo(Formula::class);
+    }
 }

@@ -2,7 +2,7 @@
 
 namespace App\Observers;
 
-use App\Formula;
+use App\Models\Formula;
 use App\Jobs\CreateGitCommit;
 use App\Notifications\FormulaReleased;
 

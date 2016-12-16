@@ -27,7 +27,7 @@ class Check extends Formula
     public function handle()
     {
         $this->formulas()
-            ->each(function (\App\Formula $formula) {
+            ->each(function (\App\Models\Formula $formula) {
                 $this->info(sprintf('Checking %s ...', $formula->getAttribute('name')));
 
                 $formula->update(array_merge(
@@ -56,11 +56,11 @@ class Check extends Formula
     /**
      * Get formula latest release info.
      *
-     * @param \App\Formula $formula
+     * @param \App\Models\Formula $formula
      *
      * @return array
      */
-    protected function watchdog(\App\Formula $formula)
+    protected function watchdog(\App\Models\Formula $formula)
     {
         $checker = $this->checker($formula);
 

@@ -7,16 +7,16 @@ use Illuminate\Console\Command;
 abstract class Formula extends Command
 {
     /**
-     * @var \App\Formula
+     * @var \App\Models\Formula
      */
     protected $formula;
 
     /**
      * Create a new command instance.
      *
-     * @param \App\Formula $formula
+     * @param \App\Models\Formula $formula
      */
-    public function __construct(\App\Formula $formula)
+    public function __construct(\App\Models\Formula $formula)
     {
         parent::__construct();
 
@@ -26,7 +26,7 @@ abstract class Formula extends Command
     /**
      * Instance the checker or get class name.
      *
-     * @param \App\Formula|string $formula
+     * @param \App\Models\Formula|string $formula
      * @param bool $instance
      *
      * @return \App\Checkers\Checker|string

@@ -2,7 +2,7 @@
 
 namespace App\Checkers;
 
-use App\Formula;
+use App\Models\Formula;
 use GuzzleHttp\Client;
 
 abstract class Checker
