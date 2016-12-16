@@ -69,7 +69,10 @@ class Check extends Formula
         if (Comparator::greaterThan($checker->version($latest), $checker->version($formula->getAttribute('version')))) {
             $version = $latest;
 
-            list('url' => $archive, 'hash' => $hash) = $checker->archive();
+            $temp = $checker->archive();
+
+            $archive = $temp['url'];
+            $hash = $temp['hash'];
         }
 
         return compact('version', 'archive', 'hash');
