@@ -2,7 +2,7 @@
 
 namespace App\Checkers;
 
-class Composer extends Github
+class Composer extends External
 {
     /**
      * Composer archive url.
@@ -10,14 +10,4 @@ class Composer extends Github
      * @var string
      */
     protected $archiveUrl = 'https://getcomposer.org/download/%s/composer.phar';
-
-    /**
-     * Get the archive url.
-     *
-     * @return string
-     */
-    protected function archiveUrl()
-    {
-        return sprintf($this->archiveUrl, $this->version);
-    }
 }
