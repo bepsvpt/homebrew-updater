@@ -11,7 +11,7 @@ class Manage extends Formula
      *
      * @var string
      */
-    protected $signature = 'formula:manage {--add} {--delete} {--backup} {--restore} {--full}';
+    protected $signature = 'formula:manage {--add} {--delete} {--backup} {--restore} {--full} {--s|sort= : Sort by column}';
 
     /**
      * The console command description.
@@ -53,6 +53,10 @@ class Manage extends Formula
             $formulas->each(function ($formula) {
                 $this->shorten($formula);
             });
+        }
+
+        if ($this->option('sort')) {
+            $formulas = $formulas->sortBy($this->option('sort'));
         }
 
         $this->table($headers, $formulas);
