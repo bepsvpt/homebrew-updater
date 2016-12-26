@@ -19,6 +19,12 @@ Automatically check release of homebrew formulas.
 6. php artisan migrate --force
 7. set up crontab: https://laravel.com/docs/scheduling#introduction
 
+## Upgrade
+
+1. git pull
+2. composer install --no-dev -o
+3. php artisan migrate --force
+
 ## Artisan Commands
 
 - formula:manage
