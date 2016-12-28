@@ -5,10 +5,10 @@
   "license": "MIT",
   "type": "project",
   "require": {
-    "php": ">=7.0",
+    "php": "^7.0",
     "composer/semver": "^1.4",
+    "graham-campbell/github": "^5.0",
     "guzzlehttp/guzzle": "^6.2",
-    "knplabs/github-api": "^2.0",
     "laravel/framework": "5.3.*",
     "league/uri": "^4.2",
     "php-http/guzzle6-adapter": "^1.1",
@@ -36,6 +36,12 @@
       "tests/TestCase.php"
     ]
   },
+  "config": {
+    "preferred-install": "dist",
+    "optimize-autoloader": true,
+    "sort-packages": true,
+    "notify-on-install": false
+  },
   "scripts": {
     "post-root-package-install": [
       "php -r \"file_exists('.env') || copy('.env.example', '.env');\""
@@ -53,8 +59,5 @@
       "php artisan ide-helper:meta",
       "php artisan optimize"
     ]
-  },
-  "config": {
-    "preferred-install": "dist"
   }
 }

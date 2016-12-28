@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Exceptions\NothingToCommitException;
 use App\Models\Formula;
+use GitHub;
 use Illuminate\Queue\SerializesModels;
 use Log;
 use SebastianBergmann\Git\Git;
@@ -29,13 +30,6 @@ class CreateGitCommit
     protected $repository;
 
     /**
-     * Formula name.
-     *
-     * @var string
-     */
-    protected $name;
-
-    /**
      * Create a new job instance.
      *
      * @param Formula $formula
@@ -57,11 +51,12 @@ class CreateGitCommit
     public function handle()
     {
         try {
-            $this->extractName()
-                ->master()
-                ->prBranch()
-                ->modify()
+            $this->master()
+                ->createBranch()
+                ->modifyFormula()
                 ->commit()
+                ->pushCommit()
+                ->openPullRequest()
                 ->master();
         } catch (NothingToCommitException $e) {
             Log::error('nothing-to-commit', [
@@ -74,29 +69,25 @@ class CreateGitCommit
     }
 
     /**
-     * Extract the formula name.
+     * Change the branch to master.
      *
      * @return $this
      */
-    protected function extractName()
+    protected function master()
     {
-        $name = $this->formula->getAttribute('name');
-
-        $pos = strrpos($name, '/');
-
-        $this->name = false === $pos ? $name : substr($name, $pos + 1);
+        $this->git->checkout('master');
 
         return $this;
     }
 
     /**
-     * Create pull request branch.
+     * Create a new branch for this update.
      *
      * @return $this
      */
-    protected function prBranch()
+    protected function createBranch()
     {
-        $branch = sprintf('-b %s-%s', $this->name, $this->formula->getAttribute('version'));
+        $branch = sprintf('-b %s', $this->branchName());
 
         $this->git->checkout($branch);
 
@@ -104,13 +95,13 @@ class CreateGitCommit
     }
 
     /**
-     * Update formula url and hash.
+     * Modify formula url and hash.
      *
      * @return $this
      */
-    protected function modify()
+    protected function modifyFormula()
     {
-        $filename = sprintf('%s/%s.rb', $this->formula->getAttribute('git_repo'), $this->name);
+        $filename = sprintf('%s/%s.rb', $this->formula->getAttribute('git_repo'), $this->name());
 
         $regex = $this->regex();
 
@@ -160,13 +151,61 @@ class CreateGitCommit
      */
     protected function commit()
     {
-        $message = sprintf('%s %s', $this->name, $this->formula->getAttribute('version'));
+        $message = sprintf('%s %s', $this->name(), $this->formula->getAttribute('version'));
 
         $this->repository->add();
 
         $this->repository->commit($message);
 
         return $this;
+    }
+
+    /**
+     * Push commit to GitHub.
+     *
+     * @return $this
+     */
+    protected function pushCommit()
+    {
+        $arguments = ['origin', $this->branchName()];
+
+        $this->repository->getGit()->{'push'}($this->repository->getRepositoryPath(), $arguments);
+
+        return $this;
+    }
+
+    /**
+     * Open a pull request for homebrew repository.
+     *
+     * @return $this
+     */
+    protected function openPullRequest()
+    {
+        GitHub::pullRequests()
+            ->create('Homebrew', 'homebrew-php', [
+                'title' => 'My nifty pull request',
+                'head'  => 'BePsvPT-Fork/homebrew-php:'.$this->branchName(),
+                'base'  => 'master',
+                'body'  => $this->pullRequestBody(),
+            ]);
+
+        return $this;
+    }
+
+    /**
+     * Get pull request body.
+     *
+     * @return string
+     */
+    protected function pullRequestBody()
+    {
+        return <<<EOF
+- [ ] Have you checked to ensure there aren't other open [Pull Requests](https://github.com/Homebrew/homebrew-php/pulls) for the same formula update/change?
+
+---
+
+Pull Requests send from [homebrew-updater](https://github.com/BePsvPT/homebrew-updater) project.
+EOF;
     }
 
     /**
@@ -178,7 +217,7 @@ class CreateGitCommit
     {
         $this->master();
 
-        $branch = sprintf('%s-%s', $this->name, $this->formula->getAttribute('version'));
+        $branch = sprintf('%s', $this->branchName());
 
         $arguments = ['-D', $branch];
 
@@ -188,15 +227,27 @@ class CreateGitCommit
     }
 
     /**
-     * Change the branch to master.
+     * Get the pull request branch name.
+     *
+     * @return string
+     */
+    protected function branchName()
+    {
+        return sprintf('%s-%s', $this->name(), $this->formula->getAttribute('version'));
+    }
+
+    /**
+     * Get the formula name.
      *
      * @return $this
      */
-    protected function master()
+    protected function name()
     {
-        $this->git->checkout('master');
+        $name = $this->formula->getAttribute('name');
 
-        return $this;
+        $pos = strrpos($name, '/');
+
+        return false === $pos ? $name : substr($name, $pos + 1);
     }
 
     /**
