@@ -2,8 +2,10 @@
 
 namespace App\Jobs;
 
+use App\Exceptions\NothingToCommitException;
 use App\Models\Formula;
 use Illuminate\Queue\SerializesModels;
+use Log;
 use SebastianBergmann\Git\Git;
 use TQ\Git\Repository\Repository;
 
@@ -54,12 +56,21 @@ class CreateGitCommit
      */
     public function handle()
     {
-        $this->extractName()
-            ->master()
-            ->prBranch()
-            ->modify()
-            ->commit()
-            ->master();
+        try {
+            $this->extractName()
+                ->master()
+                ->prBranch()
+                ->modify()
+                ->commit()
+                ->master();
+        } catch (NothingToCommitException $e) {
+            Log::error('nothing-to-commit', [
+                'formula' => $this->formula->getAttribute('name'),
+                'version' => $this->formula->getAttribute('version'),
+            ]);
+
+            $this->revert();
+        }
     }
 
     /**
@@ -107,8 +118,13 @@ class CreateGitCommit
             $regex['patterns'],
             $regex['replacements'],
             file_get_contents($filename),
-            1
+            1,
+            $count
         );
+
+        if (0 === $count) {
+            throw new NothingToCommitException;
+        }
 
         file_put_contents($filename, $content, LOCK_EX);
 
@@ -149,6 +165,24 @@ class CreateGitCommit
         $this->repository->add();
 
         $this->repository->commit($message);
+
+        return $this;
+    }
+
+    /**
+     * Revert to original state.
+     *
+     * @return $this
+     */
+    protected function revert()
+    {
+        $this->master();
+
+        $branch = sprintf('%s-%s', $this->name, $this->formula->getAttribute('version'));
+
+        $arguments = ['-D', $branch];
+
+        $this->repository->getGit()->{'branch'}($this->repository->getRepositoryPath(), $arguments);
 
         return $this;
     }
