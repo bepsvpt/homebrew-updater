@@ -106,7 +106,8 @@ class CreateGitCommit
         $content = preg_replace(
             $regex['patterns'],
             $regex['replacements'],
-            file_get_contents($filename)
+            file_get_contents($filename),
+            1
         );
 
         file_put_contents($filename, $content, LOCK_EX);
