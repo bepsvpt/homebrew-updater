@@ -69,7 +69,7 @@ class CreateGitCommit
     }
 
     /**
-     * Change the branch to master.
+     * Change branch to master.
      *
      * @return $this
      */
@@ -81,7 +81,7 @@ class CreateGitCommit
     }
 
     /**
-     * Create a new branch for this update.
+     * Create new branch for the update.
      *
      * @return $this
      */
@@ -101,7 +101,7 @@ class CreateGitCommit
      */
     protected function modifyFormula()
     {
-        $filename = sprintf('%s/%s.rb', $this->formula->getAttribute('git_repo'), $this->name());
+        $filename = sprintf('%s/%s.rb', $this->formula->getAttribute('git_repo'), mb_strtolower($this->name()));
 
         $regex = $this->regex();
 
@@ -129,7 +129,7 @@ class CreateGitCommit
      */
     protected function regex()
     {
-        $hash = explode(':', $this->formula->getAttribute('hash'));
+        $hash = explode(':', $this->formula->getAttribute('hash'), 2);
 
         $patterns = [
             '/url ".+"'.PHP_EOL.'/U',
@@ -183,7 +183,7 @@ class CreateGitCommit
     {
         GitHub::pullRequests()
             ->create('Homebrew', 'homebrew-php', [
-                'title' => 'My nifty pull request',
+                'title' => sprintf('%s %s', $this->name(), $this->formula->getAttribute('version')),
                 'head'  => 'BePsvPT-Fork/homebrew-php:'.$this->branchName(),
                 'base'  => 'master',
                 'body'  => $this->pullRequestBody(),
@@ -204,7 +204,7 @@ class CreateGitCommit
 
 ---
 
-Pull Requests send from [homebrew-updater](https://github.com/BePsvPT/homebrew-updater) project.
+Pull request open by [homebrew-updater](https://github.com/BePsvPT/homebrew-updater) project.
 EOF;
     }
 
