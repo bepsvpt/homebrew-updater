@@ -184,7 +184,7 @@ class CreateGitCommit
         GitHub::pullRequests()
             ->create('Homebrew', 'homebrew-php', [
                 'title' => sprintf('%s %s', $this->name(), $this->formula->getAttribute('version')),
-                'head'  => 'BePsvPT-Fork/homebrew-php:'.$this->branchName(),
+                'head'  => 'BePsvPT-Fork:'.$this->branchName(),
                 'base'  => 'master',
                 'body'  => $this->pullRequestBody(),
             ]);
