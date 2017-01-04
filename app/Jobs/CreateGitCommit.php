@@ -200,11 +200,9 @@ class CreateGitCommit
     protected function pullRequestBody()
     {
         return <<<'EOF'
-- [ ] Have you checked to ensure there aren't other open [Pull Requests](https://github.com/Homebrew/homebrew-php/pulls) for the same formula update/change?
-
 ---
 
-Pull request open by [homebrew-updater](https://github.com/BePsvPT/homebrew-updater) project.
+Pull request opened by [homebrew-updater](https://github.com/BePsvPT/homebrew-updater) project.
 EOF;
     }
 
