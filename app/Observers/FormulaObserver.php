@@ -3,7 +3,7 @@
 namespace App\Observers;
 
 use App\Models\Formula;
-use App\Jobs\CreateGitCommit;
+use App\Jobs\CommitGit;
 use App\Notifications\FormulaReleased;
 
 class FormulaObserver
@@ -23,7 +23,7 @@ class FormulaObserver
             $formula->notify(new FormulaReleased);
 
             if (! is_null($formula->getAttribute('git_repo'))) {
-                dispatch(new CreateGitCommit($formula));
+                dispatch(new CommitGit($formula));
             }
         }
     }

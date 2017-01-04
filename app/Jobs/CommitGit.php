@@ -10,7 +10,7 @@ use Log;
 use SebastianBergmann\Git\Git;
 use TQ\Git\Repository\Repository;
 
-class CreateGitCommit
+class CommitGit
 {
     use SerializesModels;
 
