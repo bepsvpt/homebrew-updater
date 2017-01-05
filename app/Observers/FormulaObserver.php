@@ -22,7 +22,7 @@ class FormulaObserver
         if (isset($dirties['version'])) {
             $formula->notify(new FormulaReleased);
 
-            if (! is_null($formula->getAttribute('git_repo'))) {
+            if ($formula->getAttribute('git')['path']) {
                 dispatch(new CommitGit($formula));
             }
         }

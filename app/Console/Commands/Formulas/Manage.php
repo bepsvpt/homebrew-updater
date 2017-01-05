@@ -97,13 +97,34 @@ class Manage extends Formula
             return $this->error('Checker dost not exist.');
         }
 
-        $git_repo = $this->askRepoPath();
+        $git = $this->askGit();
 
-        if (false === $git_repo) {
-            return $this->error('Repository dost not exist.');
-        }
+        $this->formula->create(compact('name', 'url', 'checker', 'git'));
+    }
 
-        $this->formula->create(compact('name', 'url', 'checker', 'git_repo'));
+    /**
+     * Ask git information.
+     *
+     * @return array
+     */
+    protected function askGit()
+    {
+        do {
+            if (false === ($path = $this->askRepoPath())) {
+                $this->error('Repository dost not exist.');
+            }
+        } while (false === $path);
+
+        $upstream = [
+            'owner' => $this->ask('Upstream owner', $this->gitCommonField('upstream.owner')) ?: null,
+            'repo' => $this->ask('Upstream repo', $this->gitCommonField('upstream.repo')) ?: null,
+        ];
+
+        $fork = [
+            'owner' => $this->ask('Fork owner', $this->gitCommonField('fork.owner')) ?: null,
+        ];
+
+        return compact('path', 'upstream', 'fork');
     }
 
     /**
@@ -113,9 +134,9 @@ class Manage extends Formula
      */
     protected function askRepoPath()
     {
-        $repo = $this->ask('Local homebrew repository path', 'null');
+        $repo = $this->ask('Local homebrew repository path', $this->gitCommonField('path'));
 
-        if ('null' === $repo) {
+        if (false === $repo) {
             return null;
         } elseif (starts_with($repo, '~/')) {
             $repo = $_SERVER['HOME'].'/'.substr($repo, 2);
@@ -124,6 +145,30 @@ class Manage extends Formula
         }
 
         return realpath($repo);
+    }
+
+    /**
+     * Get most common field.
+     *
+     * @param string $field
+     *
+     * @return bool|string
+     */
+    protected function gitCommonField($field)
+    {
+        static $git = null;
+
+        if (is_null($git)) {
+            $git = $this->formula->all(['git']);
+        }
+
+        $count = array_count_values($git->pluck("git.{$field}")->toArray());
+
+        if (empty($count)) {
+            return false;
+        }
+
+        return array_search(max($count), $count);
     }
 
     /**

@@ -38,9 +38,9 @@ class CommitGit
     {
         $this->formula = $formula;
 
-        $this->git = new Git($this->formula->getAttribute('git_repo'));
+        $this->git = new Git($this->formula->getAttribute('git')['path']);
 
-        $this->repository = Repository::open($this->formula->getAttribute('git_repo'), $this->binary());
+        $this->repository = Repository::open($this->formula->getAttribute('git')['path'], $this->binary());
     }
 
     /**
@@ -101,7 +101,7 @@ class CommitGit
      */
     protected function modifyFormula()
     {
-        $filename = sprintf('%s/%s.rb', $this->formula->getAttribute('git_repo'), mb_strtolower($this->name()));
+        $filename = sprintf('%s/%s.rb', $this->formula->getAttribute('git')['path'], mb_strtolower($this->name()));
 
         $regex = $this->regex();
 
@@ -181,10 +181,12 @@ class CommitGit
      */
     protected function openPullRequest()
     {
+        $github = $this->formula->getAttribute('git');
+
         GitHub::pullRequests()
-            ->create('Homebrew', 'homebrew-php', [
+            ->create($github['upstream']['owner'], $github['upstream']['repo'], [
                 'title' => sprintf('%s %s', $this->name(), $this->formula->getAttribute('version')),
-                'head'  => 'BePsvPT-Fork:'.$this->branchName(),
+                'head'  => sprintf('%s:%s', $github['fork']['owner'], $this->branchName()),
                 'base'  => 'master',
                 'body'  => $this->pullRequestBody(),
             ]);

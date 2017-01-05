@@ -23,6 +23,15 @@ class Formula extends Model
     protected $dates = ['checked_at'];
 
     /**
+     * The attributes that should be cast to native types.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'git' => 'array',
+    ];
+
+    /**
      * Route notifications for the Slack channel.
      *
      * @return string
