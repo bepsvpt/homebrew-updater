@@ -22,9 +22,27 @@ class FormulaObserver
         if (isset($dirties['version'])) {
             $formula->notify(new FormulaReleased);
 
-            if ($formula->getAttribute('git')['path']) {
+            if ($this->shouldCommit($formula)) {
                 dispatch(new CommitGit($formula));
             }
         }
+    }
+
+    /**
+     * Check the release should be committed.
+     *
+     * @param Formula $formula
+     *
+     * @return bool
+     */
+    protected function shouldCommit(Formula $formula)
+    {
+        if (str_contains($formula->getAttribute('version'), ['beta', 'alpha', 'dev'])) {
+            return false;
+        } elseif (! $formula->getAttribute('git')['path']) {
+            return false;
+        }
+
+        return true;
     }
 }
