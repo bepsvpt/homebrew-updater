@@ -59,6 +59,18 @@
       "php artisan ide-helper:generate",
       "php artisan ide-helper:meta",
       "php artisan optimize"
+    ],
+    "updater:install": [
+      "@php -r \"touch('database/database.sqlite');\"",
+      "@php -r \"copy('.env.example', '.env');\"",
+      "@composer install --no-dev -o --ansi",
+      "@php artisan key:generate --ansi",
+      "@php artisan migrate --force --ansi"
+    ],
+    "updater:upgrade": [
+      "git pull --rebase --autostash",
+      "@composer install --no-dev -o --ansi",
+      "@php artisan migrate --force --ansi"
     ]
   }
 }
