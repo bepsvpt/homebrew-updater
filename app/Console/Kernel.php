@@ -15,6 +15,7 @@ class Kernel extends ConsoleKernel
     protected $commands = [
         Commands\Formulas\Check::class,
         Commands\Formulas\Manage::class,
+        Commands\Upstreams\Sync::class,
     ];
 
     /**
@@ -25,6 +26,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
+        $schedule->command('upstream:sync')->twiceDaily();
         $schedule->command('formula:check')->hourly();
     }
 }
