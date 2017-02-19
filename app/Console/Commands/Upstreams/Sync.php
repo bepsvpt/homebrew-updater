@@ -41,6 +41,8 @@ class Sync extends Command
             $repository->getGit()->{'fetch'}($repository->getRepositoryPath(), ['upstream', 'master']);
 
             $repository->getGit()->{'rebase'}($repository->getRepositoryPath(), ['upstream/master']);
+
+            $repository->getGit()->{'push'}($repository->getRepositoryPath(), ['origin', 'master']);
         }
     }
 
