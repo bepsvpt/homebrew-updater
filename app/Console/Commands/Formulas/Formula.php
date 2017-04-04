@@ -35,12 +35,15 @@ abstract class Formula extends Command
     {
         $class = 'App\Checkers\\';
 
+        // if $formula is string, we just return the full namespace
         if (is_string($formula)) {
             return $class.$formula;
         }
 
+        // otherwise, we use `checker` attribute
         $class .= $formula->getAttribute('checker');
 
+        // return full namespace or instance the class
         return $instance ? new $class($formula) : $class;
     }
 

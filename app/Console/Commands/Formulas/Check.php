@@ -19,17 +19,19 @@ class Check extends Formula
      *
      * @var string
      */
-    protected $description = 'Check formulas have new release.';
+    protected $description = 'Check formulas\' new release.';
 
     /**
      * Execute the console command.
      */
     public function handle()
     {
+        // iterators all formulas
         $this->formulas()
             ->each(function (\App\Models\Formula $formula) {
                 $this->info(sprintf('Checking %s ...', $formula->getAttribute('name')));
 
+                // update the formula's information to latest status
                 $formula->update(array_merge(
                     $this->watchdog($formula),
                     ['checked_at' => Carbon::now()]
@@ -46,10 +48,12 @@ class Check extends Formula
     {
         $formulas = $this->option('formula');
 
+        // if formula option is not set, return all formulas
         if (empty($formulas)) {
             return $this->formula->get();
         }
 
+        // get specific formulas
         return $this->formula->whereIn('name', $formulas)->get();
     }
 
@@ -62,19 +66,26 @@ class Check extends Formula
      */
     protected function watchdog(\App\Models\Formula $formula)
     {
+        // get the formula's checker
         $checker = $this->checker($formula);
 
+        // check the formula has new release or not
         $latest = $checker->latest();
 
+        // if there is new release, set up variables
         if (Comparator::greaterThan($checker->version($latest), $checker->version($formula->getAttribute('version')))) {
+            // update version
             $version = $latest;
 
+            // get the new release archive
             $temp = $checker->archive();
 
+            // set up url and hash
             $archive = $temp['url'];
             $hash = $temp['hash'];
         }
 
+        // return all information as an associative array
         return compact('version', 'archive', 'hash');
     }
 }

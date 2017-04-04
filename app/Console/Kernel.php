@@ -26,7 +26,10 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
+        // sync local repos twice a day
         $schedule->command('upstream:sync')->twiceDaily();
+
+        // check formulas every hour
         $schedule->command('formula:check')->hourly();
     }
 }

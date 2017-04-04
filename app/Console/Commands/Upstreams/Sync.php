@@ -20,7 +20,7 @@ class Sync extends Command
      *
      * @var string
      */
-    protected $description = 'Sync repository with upstream';
+    protected $description = 'Sync local repositories to remote tracked repositories';
 
     /**
      * Execute the console command.
@@ -30,24 +30,30 @@ class Sync extends Command
     public function handle()
     {
         foreach ($this->upstreams() as $repo) {
+            // retrieve repo path in filesystem
             $repository = Repository::open($repo['path'], $this->binary());
 
+            // checkout git repo to master branch
             $repository->getGit()->{'checkout'}($repository->getRepositoryPath(), ['master']);
 
+            // ensure the repo has remote tracked repository which name is upstream
             if (! isset($repository->getCurrentRemote()['upstream'])) {
                 $this->setUpUpstream($repo['upstream'], $repository);
             }
 
+            // fetch upstream master branch to local
             $repository->getGit()->{'fetch'}($repository->getRepositoryPath(), ['upstream', 'master']);
 
+            // rebase upstream/master to local master branch
             $repository->getGit()->{'rebase'}($repository->getRepositoryPath(), ['upstream/master']);
 
+            // push local master branch to GitHub
             $repository->getGit()->{'push'}($repository->getRepositoryPath(), ['origin', 'master']);
         }
     }
 
     /**
-     * Get upstreams.
+     * Get all formulas unique git upstreams.
      *
      * @return \Illuminate\Support\Collection
      */
