@@ -18,6 +18,8 @@ class Phar extends Github
      */
     protected function archiveUrl()
     {
+        // fill url directives
+        // e.g. https://github.com/%s/releases/download/%s/%s.phar
         return sprintf($this->archiveUrl, $this->repo(), $this->version, $this->filename());
     }
 
@@ -30,6 +32,11 @@ class Phar extends Github
     {
         $name = $this->formula->getAttribute('name');
 
-        return substr($name, strrpos($name, '/') + 1);
+        // if formula's name is homebrew/xxx/zzz, we only need `zzz`
+        if (false === ($pos = strrpos($name, '/'))) {
+            return $name;
+        }
+
+        return substr($name, $pos + 1);
     }
 }

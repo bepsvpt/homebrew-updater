@@ -70,8 +70,10 @@ class Github extends Checker
     public function version($version)
     {
         switch ($this->formula->getAttribute('name')) {
+            // RELEASE_4_7_0 → 4.7.0
             case 'homebrew/php/phpmyadmin':
                 return str_replace('_', '.', substr($version, 8));
+
             default:
                 return parent::version($version);
         }
@@ -84,15 +86,18 @@ class Github extends Checker
      */
     public function latest()
     {
+        // if version property is set, just return it
         if (! is_null($this->version)) {
             return $this->version;
         }
 
+        // if tags are empty, there is no release yet
         if (empty($tags = $this->tags())) {
             return null;
         }
 
-        return $this->version = array_first($tags)['name'];
+        // transform the version and return it
+        return $this->version = $this->version(array_first($tags)['name']);
     }
 
     /**
@@ -102,15 +107,19 @@ class Github extends Checker
      */
     protected function tags()
     {
+        // get the formula's tags
         $tags = (new ResultPager($this->github))
             ->fetchAll($this->github->repos(), 'tags', $this->repo(true));
 
+        // append date info to tags
         $this->appendDate($tags);
 
+        // sort tags by date field
         usort($tags, function ($a, $b) {
             return $b['date'] <=> $a['date'];
         });
 
+        // return tags
         return $tags;
     }
 
@@ -123,6 +132,8 @@ class Github extends Checker
      */
     protected function appendDate(array &$tags)
     {
+        // get commits that belong to the formula
+        // extract `sha` and `committed_at` fields as an associative array
         $dates = DB::table(Commit::getTableName())
             ->where($this->formula->commits()->getPlainForeignKey(), $this->formula->getKey())
             ->whereIn('sha', array_column(array_column($tags, 'commit'), 'sha'))
@@ -130,14 +141,17 @@ class Github extends Checker
             ->pluck('committed_at', 'sha')
             ->toArray();
 
+        // get commits' url which are not in database
         foreach ($tags as $tag) {
             if (! isset($dates[$tag['commit']['sha']])) {
                 $urls[$tag['commit']['sha']] = $tag['commit']['url'];
             }
         }
 
+        // fetch new commits' info and merge to $dates
         $dates = array_merge($dates, $this->dates($urls ?? []));
 
+        // update tags' date info
         foreach ($tags as &$tag) {
             $tag['date'] = $dates[$tag['commit']['sha']];
         }
@@ -154,14 +168,19 @@ class Github extends Checker
     {
         $dates = [];
 
+        // chunk urls to prevent fork error
         foreach (array_chunk($urls, 15, true) as $chunk) {
+            // send asynchronous requests to get commit' info
             $promises = array_map([$this->guzzle, 'getAsync'], $chunk);
 
+            // parse commits' date
             $dates += array_map([$this, 'parse'], Promise\unwrap($promises));
         }
 
+        // insert commits' info to database
         $this->insert($dates);
 
+        // return the commits' info
         return $dates;
     }
 
@@ -174,12 +193,16 @@ class Github extends Checker
      */
     protected function parse(ResponseInterface $response)
     {
+        // get http response content
         $content = $response->getBody()->getContents();
 
+        // decode the data
         $commit = json_decode($content, true);
 
+        // get commit's date
         $date = $commit['commit']['author']['date'];
 
+        // use Carbon\Carbon to handle timezone and get date time string
         return Carbon::parse($date, config('app.timezone'))->toDateTimeString();
     }
 
@@ -192,8 +215,10 @@ class Github extends Checker
      */
     protected function insert(array $commits)
     {
+        // get Commit foreign key
         $foreignKey = $this->formula->commits()->getPlainForeignKey();
 
+        // set up commits' data for database insertion
         foreach ($commits as $sha => $date) {
             $records[] = [
                 $foreignKey => $this->formula->getKey(),
@@ -202,6 +227,7 @@ class Github extends Checker
             ];
         }
 
+        // chunk records to prevent sql error
         foreach (array_chunk($records ?? [], 30) as $chunk) {
             DB::table(Commit::getTableName())->insert($chunk);
         }
@@ -214,16 +240,21 @@ class Github extends Checker
      */
     public function archive()
     {
+        // version can not be null
         if (is_null($this->version)) {
             throw new \InvalidArgumentException('Version can not be null.');
         }
 
+        // get archive url
         $url = $this->archiveUrl();
 
+        // send request and get response content
         $content = $this->fetch($url);
 
+        // calculate the hash
         $hash = sprintf('%s:%s', $this->hash, hash($this->hash, $content));
 
+        // return all information as an associative array
         return compact('url', 'hash');
     }
 
@@ -234,6 +265,8 @@ class Github extends Checker
      */
     protected function archiveUrl()
     {
+        // fill url directives
+        // e.g. https://github.com/%s/archive/%s.tar.gz
         return sprintf($this->archiveUrl, $this->repo(), $this->version);
     }
 
@@ -246,10 +279,14 @@ class Github extends Checker
      */
     protected function repo($explode = false)
     {
+        // create Uri\Schemes from url string
+        // e.g. https://github.com/phpmyadmin/phpmyadmin
         $url = Http::createFromString($this->formula->getAttribute('url'));
 
+        // get phpmyadmin/phpmyadmin from https://github.com/phpmyadmin/phpmyadmin
         $repo = substr($url->getPath(), 1);
 
+        // if explode is true, return as an associative array
         return $explode
             ? array_combine(['user', 'name'], explode('/', $repo))
             : $repo;

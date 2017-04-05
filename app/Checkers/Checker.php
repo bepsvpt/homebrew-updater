@@ -58,6 +58,11 @@ abstract class Checker
      */
     public function version($version)
     {
+        // v1.2.3 → 1.2.3
+        if (starts_with($version, ['v'])) {
+            $version = substr($version, 1);
+        }
+
         return $version;
     }
 
