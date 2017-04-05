@@ -39,10 +39,22 @@ class CorrectFormulasVersionAndUpdatePhpmyadminChecker extends Migration
         Formula::where('version', 'like', 'v%')
             ->get()
             ->each(function (Formula $formula) {
+                $map = [
+                    'Github' => 'GithubVersionPrefixV',
+                    'Phar' => 'PharVersionPrefixV',
+                ];
+
                 $formula->update([
+                    'checker' => $map[$formula->getAttribute('checker')] ?? $formula->getAttribute('checker'),
                     'version' => substr($formula->getAttribute('version'), 1),
                 ]);
             });
+
+        // rename PharVersion checker
+        Formula::where('checker', 'PharVersion')
+            ->update([
+                'checker' => 'PharFilenameWithVersion',
+            ]);
     }
 
     /**
@@ -61,6 +73,24 @@ class CorrectFormulasVersionAndUpdatePhpmyadminChecker extends Migration
         }
 
         // correct formulas version
-        // this can not be reversed
+        Formula::whereIn('checker', ['GithubVersionPrefixV', 'PharVersionPrefixV'])
+            ->get()
+            ->each(function (Formula $formula) {
+                $map = [
+                    'GithubVersionPrefixV' => 'Github',
+                    'PharVersionPrefixV' => 'Phar',
+                ];
+
+                $formula->update([
+                    'checker' => $map[$formula->getAttribute('checker')],
+                    'version' => 'v'.$formula->getAttribute('version'),
+                ]);
+            });
+
+        // rename PharFilenameWithVersion checker
+        Formula::where('checker', 'PharFilenameWithVersion')
+            ->update([
+                'checker' => 'PharVersion',
+            ]);
     }
 }

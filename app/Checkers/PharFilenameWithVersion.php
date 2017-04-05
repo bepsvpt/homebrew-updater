@@ -2,7 +2,7 @@
 
 namespace App\Checkers;
 
-class PharVersion extends Phar
+class PharFilenameWithVersion extends Phar
 {
     /**
      * Get archive filename.
