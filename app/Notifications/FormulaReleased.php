@@ -47,14 +47,9 @@ class FormulaReleased extends Notification
      */
     protected function fields(Formula $formula)
     {
-        $hash = explode(':', $formula->getAttribute('hash'));
-
         return [
             'Version' => $formula->getAttribute('version'),
             'Checked at' => $formula->getAttribute('checked_at')->toDateTimeString(),
-            'Archive url' => $formula->getAttribute('archive'),
-            // $hash[0] is hash algorithm, $hash[1] is hash value
-            $hash[0] => $hash[1],
         ];
     }
 }

@@ -77,15 +77,11 @@ class Check extends Formula
             // update version
             $version = $latest;
 
-            // get the new release archive
-            $temp = $checker->archive();
-
-            // set up url and hash
-            $archive = $temp['url'];
-            $hash = $temp['hash'];
+            // set up archive hash
+            $hash = $checker->archive()['hash'];
         }
 
         // return all information as an associative array
-        return compact('version', 'archive', 'hash');
+        return compact('version', 'hash');
     }
 }

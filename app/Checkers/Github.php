@@ -16,13 +16,6 @@ use Psr\Http\Message\ResponseInterface;
 class Github extends Checker
 {
     /**
-     * Github tag tar archive url.
-     *
-     * @var string
-     */
-    protected $archiveUrl = 'https://github.com/%s/archive/%s.tar.gz';
-
-    /**
      * @var GithubClient
      */
     protected $github;
@@ -265,9 +258,15 @@ class Github extends Checker
      */
     protected function archiveUrl()
     {
-        // fill url directives
-        // e.g. https://github.com/%s/archive/%s.tar.gz
-        return sprintf($this->archiveUrl, $this->repo(), $this->version);
+        $repo = $this->repo(true);
+
+        $pairs = [
+            '{owner}' => $repo['user'],
+            '{name}' => $repo['name'],
+            '{version}' => $this->version,
+        ];
+
+        return strtr($this->formula->getAttribute('archive'), $pairs);
     }
 
     /**
