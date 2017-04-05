@@ -17,11 +17,15 @@ class FormulaObserver
      */
     public function updated(Formula $formula)
     {
+        // get formula modified fields
         $dirties = $formula->getDirty();
 
+        // when `version` is modified, there is new release
         if (isset($dirties['version'])) {
+            // send notification
             $formula->notify(new FormulaReleased);
 
+            // if the formula has local git repo, we should commit it
             if ($this->shouldCommit($formula)) {
                 dispatch(new CommitGit($formula));
             }
@@ -37,7 +41,8 @@ class FormulaObserver
      */
     protected function shouldCommit(Formula $formula)
     {
-        if (str_contains($formula->getAttribute('version'), ['beta', 'alpha', 'dev'])) {
+        // when there is no repo path or it is non production release, we will not commit it
+        if (str_contains(mb_strtolower($formula->getAttribute('version')), ['rc', 'beta', 'alpha', 'dev'])) {
             return false;
         } elseif (! $formula->getAttribute('git')['path']) {
             return false;

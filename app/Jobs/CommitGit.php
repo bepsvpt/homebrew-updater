@@ -51,12 +51,19 @@ class CommitGit
     public function handle()
     {
         try {
+            // checkout homebrew repo to master branch
             $this->master()
+                // create new branch for the release
                 ->createBranch()
+                // update homebrew repo formula
                 ->modifyFormula()
+                // commit homebrew repo
                 ->commit()
+                // push commit new remote tracked repository
                 ->pushCommit()
+                // create pull request to homebrew project
                 ->openPullRequest()
+                // checkout homebrew repo to master branch
                 ->master();
         } catch (NothingToCommitException $e) {
             Log::error('nothing-to-commit', [
@@ -64,6 +71,7 @@ class CommitGit
                 'version' => $this->formula->getAttribute('version'),
             ]);
 
+            // revert changes
             $this->revert();
         }
     }
@@ -101,10 +109,13 @@ class CommitGit
      */
     protected function modifyFormula()
     {
+        // get formula path
         $filename = sprintf('%s/%s.rb', $this->formula->getAttribute('git')['path'], mb_strtolower($this->name()));
 
+        // get regex pattern
         $regex = $this->regex();
 
+        // update formula's url and hash
         $content = preg_replace(
             $regex['patterns'],
             $regex['replacements'],
@@ -113,10 +124,12 @@ class CommitGit
             $count
         );
 
+        // if $count is zero, nothing change
         if (0 === $count) {
             throw new NothingToCommitException;
         }
 
+        // write data to file
         file_put_contents($filename, $content, LOCK_EX);
 
         return $this;
@@ -215,8 +228,10 @@ EOF;
      */
     protected function revert()
     {
+        // checkout to master branch
         $this->master();
 
+        // delete the branch that we created
         $branch = sprintf('%s', $this->branchName());
 
         $arguments = ['-D', $branch];
@@ -233,6 +248,7 @@ EOF;
      */
     protected function branchName()
     {
+        // branch name is combine with {repo-name}-{new-version}
         return sprintf('%s-%s', $this->name(), $this->formula->getAttribute('version'));
     }
 
@@ -247,6 +263,7 @@ EOF;
 
         $pos = strrpos($name, '/');
 
+        // if formula's name is homebrew/xxx/zzz, we only need `zzz`
         return false === $pos ? $name : substr($name, $pos + 1);
     }
 

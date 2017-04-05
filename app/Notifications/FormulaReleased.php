@@ -30,7 +30,7 @@ class FormulaReleased extends Notification
     {
         return (new SlackMessage)
             ->success()
-            ->content('One of monitored formulas has been released!')
+            ->content('Formula New Release!')
             ->attachment(function (SlackAttachment $attachment) use ($formula) {
                 $attachment
                     ->title($formula->getAttribute('name'), $formula->getAttribute('url'))
@@ -53,6 +53,7 @@ class FormulaReleased extends Notification
             'Version' => $formula->getAttribute('version'),
             'Checked at' => $formula->getAttribute('checked_at')->toDateTimeString(),
             'Archive url' => $formula->getAttribute('archive'),
+            // $hash[0] is hash algorithm, $hash[1] is hash value
             $hash[0] => $hash[1],
         ];
     }
