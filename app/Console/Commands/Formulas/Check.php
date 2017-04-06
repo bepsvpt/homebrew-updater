@@ -50,14 +50,11 @@ class Check extends Formula
 
         // if formula option is not set, return all formulas
         if (empty($formulas)) {
-            return $this->formula->get();
+            return $this->formula->where('enable', true)->get();
         }
 
         // get specific formulas
-        return $this->formula
-            ->whereIn('name', $formulas)
-            ->where('enable', true)
-            ->get();
+        return $this->formula->whereIn('name', $formulas)->get();
     }
 
     /**
