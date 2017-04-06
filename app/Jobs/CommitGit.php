@@ -6,7 +6,6 @@ use App\Exceptions\NothingToCommitException;
 use App\Models\Formula;
 use GitHub;
 use Illuminate\Queue\SerializesModels;
-use League\Uri\Schemes\Http;
 use Log;
 use SebastianBergmann\Git\Git;
 use TQ\Git\Repository\Repository;
@@ -151,47 +150,11 @@ class CommitGit
         ];
 
         $replacements = [
-            sprintf('url "%s"%s', $this->archiveUrl(), PHP_EOL),
+            sprintf('url "%s"%s', $this->formula->getAttribute('archive_url'), PHP_EOL),
             sprintf('%s "%s"%s', $hash[0], $hash[1], PHP_EOL),
         ];
 
         return compact('patterns', 'replacements');
-    }
-
-    /**
-     * Get archive url.
-     *
-     * @return string
-     */
-    protected function archiveUrl()
-    {
-        $repo = $this->repo();
-
-        $pairs = [
-            '{owner}' => $repo['user'],
-            '{name}' => $repo['name'],
-            '{version}' => $this->formula->getAttribute('version'),
-        ];
-
-        return strtr($this->formula->getAttribute('archive'), $pairs);
-    }
-
-    /**
-     * Get repository name.
-     *
-     * @return array
-     */
-    protected function repo()
-    {
-        // create Uri\Schemes from url string
-        // e.g. https://github.com/phpmyadmin/phpmyadmin
-        $url = Http::createFromString($this->formula->getAttribute('url'));
-
-        // get phpmyadmin/phpmyadmin from https://github.com/phpmyadmin/phpmyadmin
-        $repo = substr($url->getPath(), 1);
-
-        // return as an associative array
-        return array_combine(['user', 'name'], explode('/', $repo));
     }
 
     /**
@@ -296,12 +259,8 @@ EOF;
      */
     protected function name()
     {
-        $name = $this->formula->getAttribute('name');
-
-        $pos = strrpos($name, '/');
-
         // if formula's name is homebrew/xxx/zzz, we only need `zzz`
-        return false === $pos ? $name : substr($name, $pos + 1);
+        return array_last(explode('/',  $this->formula->getAttribute('name')));
     }
 
     /**

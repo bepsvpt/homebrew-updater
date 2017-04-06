@@ -46,14 +46,14 @@ class Manage extends Formula
     protected function index()
     {
         // specific the fields that we want to retrieve
-        $headers = ['id', 'name', 'url', 'checker', 'version', 'checked_at'];
+        $headers = ['id', 'name', 'repo', 'version', 'enable', 'checked_at'];
 
         // get all formulas with specific fields
         $formulas = $this->formula->all($headers);
 
         // if full option is not set, we should shorten some fields
         if (! $this->option('full')) {
-            // iterator all formulas and shorten them
+            // iterator all formulas for shortening them
             $formulas->each(function ($formula) {
                 $this->shorten($formula);
             });
@@ -80,14 +80,7 @@ class Manage extends Formula
         $f = $formula->getAttributes();
 
         // if formula's name is homebrew/xxx/zzz, we only need `zzz`
-        if (false !== ($pos = strrpos($f['name'], '/'))) {
-            $formula->setAttribute('name', substr($f['name'], $pos + 1));
-        }
-
-        // if formula's checker is inherited from GitHub, remove the giithub prefix url
-        if (is_a($this->checker($f['checker']), $this->checker('Github'), true)) {
-            $formula->setAttribute('url', str_replace('https://github.com/', '', $f['url']));
-        }
+        $formula->setAttribute('name', array_last(explode('/', $f['name'])));
     }
 
     /**
@@ -97,26 +90,24 @@ class Manage extends Formula
      */
     protected function store()
     {
-        // get the formula's full name, e.g. homebrew/php/phpmyadmin
+        // get formula's full name, e.g. homebrew/php/phpmyadmin
         $name = $this->ask('Full formula name');
 
-        // get the formula's repo url, only support GitHub now
+        // get formula's repo, only support GitHub now
         // e.g. https://github.com/phpmyadmin/phpmyadmin
-        $url = $this->ask('Repository url');
+        $repo = $this->ask('Repository name');
 
-        // get the formula's checker, e.g. Github
-        $checker = $this->ask('Checker');
+        // get formula's checker, e.g. Github
+        $checker = $this->choice('Checker', ['Github'], 0);
 
-        // ensure the checker is exist
-        if (! class_exists($this->checker($checker))) {
-            return $this->error('Checker dost not exist.');
-        }
+        // get formula's archive template
+        $archive = $this->ask('Archive template');
 
-        // get the local git repo path
+        // get local git repo path
         $git = $this->askGit();
 
-        // save the formula to database
-        $this->formula->create(compact('name', 'url', 'checker', 'git'));
+        // save formula to database
+        $this->formula->create(compact('name', 'repo', 'checker', 'archive', 'git'));
     }
 
     /**

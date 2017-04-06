@@ -22,7 +22,7 @@ class CreateFormulasTable extends Migration
             $table->string('version', 32)->nullable();
             $table->string('archive')->nullable();
             $table->string('hash')->nullable();
-            $table->unsignedTinyInteger('interval')->default(1)->index();
+            $table->unsignedSmallInteger('interval')->default(1)->index();
             $table->timestamp('checked_at')->nullable()->index();
         });
     }

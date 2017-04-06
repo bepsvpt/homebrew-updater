@@ -54,7 +54,10 @@ class Check extends Formula
         }
 
         // get specific formulas
-        return $this->formula->whereIn('name', $formulas)->get();
+        return $this->formula
+            ->whereIn('name', $formulas)
+            ->where('enable', true)
+            ->get();
     }
 
     /**

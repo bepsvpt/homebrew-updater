@@ -28,8 +28,26 @@ class Formula extends Model
      * @var array
      */
     protected $casts = [
+        'enable' => 'boolean',
         'git' => 'array',
     ];
+
+    /**
+     * Get the formula's archive url.
+     *
+     * @param null|string $version
+     *
+     * @return string
+     */
+    public function getArchiveUrlAttribute($version = null)
+    {
+        $pairs = [
+            '{name}' => array_last(explode('/', $this->getAttribute('name'))),
+            '{version}' => $version ?: $this->getAttribute('version'),
+        ];
+
+        return strtr($this->getAttribute('archive'), $pairs);
+    }
 
     /**
      * Route notifications for the Slack channel.

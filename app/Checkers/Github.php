@@ -10,7 +10,6 @@ use Github\Client as GithubClient;
 use Github\ResultPager;
 use GuzzleHttp\Client as Guzzle;
 use GuzzleHttp\Promise;
-use League\Uri\Schemes\Http;
 use Psr\Http\Message\ResponseInterface;
 
 class Github extends Checker
@@ -54,25 +53,6 @@ class Github extends Checker
     }
 
     /**
-     * Transform version name if need.
-     *
-     * @param string $version
-     *
-     * @return string
-     */
-    public function version($version)
-    {
-        switch ($this->formula->getAttribute('name')) {
-            // RELEASE_4_7_0 → 4.7.0
-            case 'homebrew/php/phpmyadmin':
-                return str_replace('_', '.', substr($version, 8));
-
-            default:
-                return parent::version($version);
-        }
-    }
-
-    /**
      * Repository latest version.
      *
      * @return string|null
@@ -102,7 +82,7 @@ class Github extends Checker
     {
         // get the formula's tags
         $tags = (new ResultPager($this->github))
-            ->fetchAll($this->github->repos(), 'tags', $this->repo(true));
+            ->fetchAll($this->github->repos(), 'tags', explode('/', $this->formula->getAttribute('repo')));
 
         // append date info to tags
         $this->appendDate($tags);
@@ -238,8 +218,10 @@ class Github extends Checker
             throw new \InvalidArgumentException('Version can not be null.');
         }
 
-        // get archive url
-        $url = $this->archiveUrl();
+        // set up version and get archive url
+        $this->formula->setAttribute('archive_url', $this->version);
+
+        $url = $this->formula->getAttribute('archive_url');
 
         // send request and get response content
         $content = $this->fetch($url);
@@ -252,42 +234,21 @@ class Github extends Checker
     }
 
     /**
-     * Get archive url.
+     * Transform version name if need.
+     *
+     * @param string $version
      *
      * @return string
      */
-    protected function archiveUrl()
+    public function version($version)
     {
-        $repo = $this->repo(true);
+        switch ($this->formula->getAttribute('name')) {
+            // RELEASE_4_7_0 → 4.7.0
+            case 'homebrew/php/phpmyadmin':
+                return str_replace(['RELEASE_', '_'], ['', '.'], $version);
 
-        $pairs = [
-            '{owner}' => $repo['user'],
-            '{name}' => $repo['name'],
-            '{version}' => $this->version,
-        ];
-
-        return strtr($this->formula->getAttribute('archive'), $pairs);
-    }
-
-    /**
-     * Get repository name.
-     *
-     * @param bool $explode
-     *
-     * @return array|string
-     */
-    protected function repo($explode = false)
-    {
-        // create Uri\Schemes from url string
-        // e.g. https://github.com/phpmyadmin/phpmyadmin
-        $url = Http::createFromString($this->formula->getAttribute('url'));
-
-        // get phpmyadmin/phpmyadmin from https://github.com/phpmyadmin/phpmyadmin
-        $repo = substr($url->getPath(), 1);
-
-        // if explode is true, return as an associative array
-        return $explode
-            ? array_combine(['user', 'name'], explode('/', $repo))
-            : $repo;
+            default:
+                return parent::version($version);
+        }
     }
 }
