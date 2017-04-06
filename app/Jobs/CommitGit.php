@@ -260,7 +260,7 @@ EOF;
     protected function name()
     {
         // if formula's name is homebrew/xxx/zzz, we only need `zzz`
-        return array_last(explode('/',  $this->formula->getAttribute('name')));
+        return array_last(explode('/', $this->formula->getAttribute('name')));
     }
 
     /**
