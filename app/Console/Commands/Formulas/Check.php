@@ -76,12 +76,9 @@ class Check extends Formula
         if (Comparator::greaterThan($checker->version($latest), $checker->version($formula->getAttribute('version')))) {
             // update version
             $version = $latest;
-
-            // set up archive hash
-            $hash = $checker->archive()['hash'];
         }
 
         // return all information as an associative array
-        return compact('version', 'hash');
+        return compact('version');
     }
 }

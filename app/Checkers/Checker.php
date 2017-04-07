@@ -3,7 +3,6 @@
 namespace App\Checkers;
 
 use App\Models\Formula;
-use GuzzleHttp\Client;
 
 abstract class Checker
 {
@@ -18,13 +17,6 @@ abstract class Checker
     protected $version;
 
     /**
-     * Hash Algorithm.
-     *
-     * @var string
-     */
-    protected $hash = 'sha256';
-
-    /**
      * Constructor.
      *
      * @param Formula $formula
@@ -35,22 +27,7 @@ abstract class Checker
     }
 
     /**
-     * Fetch the http request.
-     *
-     * @param string $url
-     *
-     * @return string
-     */
-    protected function fetch($url)
-    {
-        return (new Client())
-            ->get($url)
-            ->getBody()
-            ->getContents();
-    }
-
-    /**
-     * Transform version name if need.
+     * Transform version name if necessary.
      *
      * @param string|null $version
      *
@@ -60,23 +37,16 @@ abstract class Checker
     {
         // v1.2.3 → 1.2.3
         if (starts_with($version, ['v'])) {
-            $version = substr($version, 1);
+            return substr($version, 1);
         }
 
         return $version;
     }
 
     /**
-     * Get the repository latest version.
+     * Get repository latest version. If there is no release, return null.
      *
-     * @return string
+     * @return string|null
      */
     abstract public function latest();
-
-    /**
-     * Get the latest archive info.
-     *
-     * @return array
-     */
-    abstract public function archive();
 }

@@ -50,6 +50,7 @@ class FormulaReleased extends Notification
         return [
             'Version' => $formula->getAttribute('version'),
             'Checked at' => $formula->getAttribute('checked_at')->toDateTimeString(),
+            'Last PR' => $formula->getAttribute('pull_request'),
         ];
     }
 }

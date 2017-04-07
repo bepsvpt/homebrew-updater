@@ -22,13 +22,13 @@ class FormulaObserver
 
         // when `version` is modified, there is new release
         if (isset($dirties['version'])) {
-            // send notification
-            $formula->notify(new FormulaReleased);
-
             // if the formula has local git repo, we should commit it
             if ($this->shouldCommit($formula)) {
                 dispatch(new CommitGit($formula));
             }
+
+            // send notification
+            $formula->notify(new FormulaReleased);
         }
     }
 

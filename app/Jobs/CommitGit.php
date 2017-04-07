@@ -30,6 +30,13 @@ class CommitGit
     protected $repository;
 
     /**
+     * Hash Algorithm.
+     *
+     * @var string
+     */
+    protected $hash = 'sha256';
+
+    /**
      * Create a new job instance.
      *
      * @param Formula $formula
@@ -142,7 +149,7 @@ class CommitGit
      */
     protected function regex()
     {
-        $hash = explode(':', $this->formula->getAttribute('hash'), 2);
+        $url = $this->formula->getAttribute('archive_url');
 
         $patterns = [
             '/url ".+"'.PHP_EOL.'/U',
@@ -150,8 +157,8 @@ class CommitGit
         ];
 
         $replacements = [
-            sprintf('url "%s"%s', $this->formula->getAttribute('archive_url'), PHP_EOL),
-            sprintf('%s "%s"%s', $hash[0], $hash[1], PHP_EOL),
+            sprintf('url "%s"%s', $url, PHP_EOL),
+            sprintf('%s "%s"%s', 'sha256', hash_remote($this->hash, $url), PHP_EOL),
         ];
 
         return compact('patterns', 'replacements');
@@ -196,13 +203,15 @@ class CommitGit
     {
         $github = $this->formula->getAttribute('git');
 
-        GitHub::pullRequests()
+        $pullRequest = GitHub::pullRequests()
             ->create($github['upstream']['owner'], $github['upstream']['repo'], [
                 'title' => sprintf('%s %s', $this->name(), $this->formula->getAttribute('version')),
                 'head'  => sprintf('%s:%s', $github['fork']['owner'], $this->branchName()),
                 'base'  => 'master',
                 'body'  => $this->pullRequestBody(),
             ]);
+
+        $this->formula->update(['pull_request' => $pullRequest['html_url']]);
 
         return $this;
     }
