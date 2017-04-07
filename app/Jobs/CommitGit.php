@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Exceptions\NothingToCommitException;
 use App\Models\Formula;
+use DB;
 use GitHub;
 use Illuminate\Queue\SerializesModels;
 use Log;
@@ -241,7 +242,9 @@ class CommitGit
                 'body'  => $this->pullRequestBody(),
             ]);
 
-        $this->formula->update(['pull_request' => $pullRequest['html_url']]);
+        DB::table('formulas')
+            ->where($this->formula->getKeyName(), $this->formula->getKey())
+            ->update(['pull_request' => $pullRequest['html_url']]);
 
         return $this;
     }
