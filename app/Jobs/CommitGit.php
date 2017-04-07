@@ -68,6 +68,8 @@ class CommitGit
                 ->commit()
                 // push commit new remote tracked repository
                 ->pushCommit()
+                // close last pull request if it still open
+                ->closeLastPullRequest()
                 // create pull request to homebrew project
                 ->openPullRequest()
                 // checkout homebrew repo to master branch
@@ -190,6 +192,34 @@ class CommitGit
         $arguments = ['origin', $this->branchName()];
 
         $this->repository->getGit()->{'push'}($this->repository->getRepositoryPath(), $arguments);
+
+        return $this;
+    }
+
+    /**
+     * Close last pull request if it still open.
+     *
+     * @return $this
+     */
+    protected function closeLastPullRequest()
+    {
+        if (is_null($prUrl = $this->formula->getAttribute('pull_request'))) {
+            return $this;
+        }
+
+        $upstream = $this->formula->getAttribute('git')['upstream'];
+        $prId = array_last(explode('/', $prUrl));
+
+        $pullRequest = GitHub::pullRequests()->show($upstream['owner'], $upstream['repo'], $prId);
+
+        if ('open' === $pullRequest['state']) {
+            GitHub::pullRequests()->update(
+                $upstream['owner'],
+                $upstream['repo'],
+                $prId,
+                ['state' => 'closed']
+            );
+        }
 
         return $this;
     }
