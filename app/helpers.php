@@ -8,7 +8,8 @@ if (! function_exists('fetch')) {
      *
      * @return string
      */
-    function fetch ($url) {
+    function fetch($url)
+    {
         return (new GuzzleHttp\Client())
             ->get($url)
             ->getBody()
@@ -25,7 +26,8 @@ if (! function_exists('hash_remote')) {
      *
      * @return string
      */
-    function hash_remote ($algo, $url) {
+    function hash_remote($algo, $url)
+    {
         return hash($algo, fetch($url));
     }
 }
