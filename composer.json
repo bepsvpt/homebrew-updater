@@ -1,7 +1,7 @@
 {
   "name": "homebrew/updater",
   "description": "Automatically check release of homebrew formulas.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "keywords": ["homebrew"],
   "license": "MIT",
   "type": "project",
