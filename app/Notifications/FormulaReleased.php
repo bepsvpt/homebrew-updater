@@ -28,12 +28,14 @@ class FormulaReleased extends Notification
      */
     public function toSlack(Formula $formula)
     {
+        $formula = $formula->fresh();
+
         return (new SlackMessage)
             ->success()
             ->content('Formula New Release!')
             ->attachment(function (SlackAttachment $attachment) use ($formula) {
                 $attachment
-                    ->title($formula->getAttribute('name'), $formula->getAttribute('url'))
+                    ->title($formula->getAttribute('name'), 'https://github.com/'.$formula->getAttribute('repo'))
                     ->fields($this->fields($formula));
             });
     }
