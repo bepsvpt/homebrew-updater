@@ -170,6 +170,7 @@ return [
          */
 
         GrahamCampbell\GitHub\GitHubServiceProvider::class,
+        Laravel\Tinker\TinkerServiceProvider::class,
 
         /*
          * Application Service Providers...
