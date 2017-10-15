@@ -30,6 +30,8 @@ class Formula extends Model
     protected $casts = [
         'enable' => 'boolean',
         'git' => 'array',
+        'revision' => 'array',
+        'dependent' => 'array',
     ];
 
     /**

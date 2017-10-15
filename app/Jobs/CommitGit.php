@@ -65,6 +65,10 @@ class CommitGit
                 ->createBranch()
                 // update homebrew repo formula
                 ->modifyFormula()
+                // update related formulas revision
+                ->modifyRevision()
+                // update dependent formulas url and hash
+                ->modifyDependent()
                 // commit homebrew repo
                 ->commit()
                 // push commit new remote tracked repository
@@ -115,12 +119,14 @@ class CommitGit
     /**
      * Modify formula url and hash.
      *
+     * @param string|null $formula
+     *
      * @return $this
      */
-    protected function modifyFormula()
+    protected function modifyFormula($formula = null)
     {
         // get formula path
-        $filename = sprintf('%s/%s.rb', $this->formula->getAttribute('git')['path'], mb_strtolower($this->name()));
+        $filename = sprintf('%s/%s.rb', $this->formula->getAttribute('git')['path'], $formula ?: mb_strtolower($this->name()));
 
         // get regex pattern
         $regex = $this->regex();
@@ -136,6 +142,12 @@ class CommitGit
 
         // if $count is zero, nothing change
         if (0 === $count) {
+            if (! is_null($formula)) {
+                Log::error('dependent-nothing-to-commit', compact('formula'));
+
+                return $this;
+            }
+
             throw new NothingToCommitException;
         }
 
@@ -152,7 +164,13 @@ class CommitGit
      */
     protected function regex()
     {
+        static $hash = null;
+
         $url = $this->formula->getAttribute('archive_url');
+
+        if (is_null($hash)) {
+            $hash = hash_remote($this->hash, $url);
+        }
 
         $patterns = [
             '/url ".+"'.PHP_EOL.'/U',
@@ -161,10 +179,79 @@ class CommitGit
 
         $replacements = [
             sprintf('url "%s"%s', $url, PHP_EOL),
-            sprintf('%s "%s"%s', 'sha256', hash_remote($this->hash, $url), PHP_EOL),
+            sprintf('%s "%s"%s', 'sha256', $hash, PHP_EOL),
         ];
 
         return compact('patterns', 'replacements');
+    }
+
+    /**
+     * Modify revision formulas revision.
+     *
+     * @return $this
+     */
+    protected function modifyRevision()
+    {
+        $formulas = $this->formula->getAttribute('revision');
+
+        if (is_null($formulas) || empty($formulas)) {
+            return $this;
+        }
+
+        $path = $this->formula->getAttribute('git')['path'];
+
+        foreach ($formulas as $formula) {
+            $filename = sprintf('%s/%s.rb', $path, $formula);
+
+            $content = file_get_contents($filename);
+
+            if (false === ($pos = mb_strpos($content, 'revision'))) {
+                $revision = '  revision 1'.PHP_EOL;
+
+                // (sha256 "xxx").length + new line
+                $begin = $end = mb_strpos($content, 'sha256') + 74;
+            } else {
+                $pos += 9;
+
+                $endPos = mb_strpos($content, PHP_EOL, $pos);
+
+                $revision = intval(mb_substr($content, $pos, $endPos - $pos)) + 1;
+
+                $begin = $pos;
+                $end = $endPos;
+            }
+
+            $content = sprintf(
+                '%s%s%s',
+                mb_substr($content, 0, $begin),
+                $revision,
+                mb_substr($content, $end)
+            );
+
+            file_put_contents($filename, $content, LOCK_EX);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Modify dependent formulas url and hash.
+     *
+     * @return $this
+     */
+    protected function modifyDependent()
+    {
+        $formulas = $this->formula->getAttribute('dependent');
+
+        if (is_null($formulas) || empty($formulas)) {
+            return $this;
+        }
+
+        foreach ($formulas as $formula) {
+            $this->modifyFormula($formula);
+        }
+
+        return $this;
     }
 
     /**
@@ -209,6 +296,7 @@ class CommitGit
         }
 
         $upstream = $this->formula->getAttribute('git')['upstream'];
+
         $prId = array_last(explode('/', $prUrl));
 
         $pullRequest = GitHub::pullRequests()->show($upstream['owner'], $upstream['repo'], $prId);

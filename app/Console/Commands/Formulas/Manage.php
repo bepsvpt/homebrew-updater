@@ -106,8 +106,26 @@ class Manage extends Formula
         // get local git repo path
         $git = $this->askGit();
 
+        // get revision formulas
+        $revision = $this->ask('Revision formulas, separate by comma, e.g. phpmyadmin,wp-cli', false) ?: null;
+
+        if (! is_null($revision)) {
+            $revision = array_map(function ($name) {
+                return mb_strtolower(trim($name));
+            }, explode(',', $revision));
+        }
+
+        // get dependent formulas
+        $dependent = $this->ask('Dependent formulas, separate by comma, e.g. phpmyadmin,wp-cli', false) ?: null;
+
+        if (! is_null($dependent)) {
+            $dependent = array_map(function ($name) {
+                return mb_strtolower(trim($name));
+            }, explode(',', $dependent));
+        }
+
         // save formula to database
-        $this->formula->create(compact('name', 'repo', 'checker', 'archive', 'git'));
+        $this->formula->create(compact('name', 'repo', 'checker', 'archive', 'git', 'revision', 'dependent'));
     }
 
     /**
