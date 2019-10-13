@@ -33,6 +33,7 @@ class Github extends Checker
         parent::__construct($formula);
 
         $this->github = new GithubClient;
+
         $this->github->authenticate(config('services.github.token'), 'http_token');
 
         $this->paginator = new ResultPager($this->github);
@@ -141,7 +142,7 @@ class Github extends Checker
     {
         switch ($this->formula->getAttribute('name')) {
             // RELEASE_4_7_0 → 4.7.0
-            case 'homebrew/php/phpmyadmin':
+            case 'homebrew/core/phpmyadmin':
                 return str_replace(['RELEASE_', '_'], ['', '.'], $version);
 
             default:
