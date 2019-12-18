@@ -5,12 +5,18 @@
   "keywords": ["homebrew"],
   "license": "MIT",
   "type": "project",
+  "authors": [
+    {
+      "name": "bepsvpt",
+      "email": "og7lsrszah6y3lz@infinitefa.email"
+    }
+  ],
   "require": {
     "php": "^7.1",
-    "composer/semver": "1.4.*",
-    "doctrine/dbal": "2.5.*",
+    "composer/semver": "1.5.*",
+    "doctrine/dbal": "2.10.*",
     "graham-campbell/github": "7.3.*",
-    "guzzlehttp/guzzle": "6.3.*",
+    "guzzlehttp/guzzle": "6.5.*",
     "laravel/framework": "5.6.*",
     "laravel/tinker": "1.0.*",
     "league/uri": "5.0.*",
@@ -20,8 +26,8 @@
   },
   "require-dev": {
     "barryvdh/laravel-ide-helper": "2.4.*",
-    "filp/whoops": "2.1.*",
-    "fzaninotto/faker": "1.7.*",
+    "filp/whoops": "2.5.*",
+    "fzaninotto/faker": "1.9.*",
     "mockery/mockery": "0.9.*",
     "phpunit/phpunit": "6.4.*",
     "symfony/css-selector": "3.1.*",
