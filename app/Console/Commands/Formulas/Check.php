@@ -2,8 +2,9 @@
 
 namespace App\Console\Commands\Formulas;
 
-use Carbon\Carbon;
+use App\Models\Formula as FormulaModel;
 use Composer\Semver\Comparator;
+use Illuminate\Database\Eloquent\Collection;
 
 class Check extends Formula
 {
@@ -12,7 +13,7 @@ class Check extends Formula
      *
      * @var string
      */
-    protected $signature = 'formula:check {--f|formula=* : Specify formulas}';
+    protected $signature = 'formula:check {--f|formula= : Specify formula}';
 
     /**
      * The console command description.
@@ -24,47 +25,47 @@ class Check extends Formula
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): void
     {
-        // iterators all formulas
-        $this->formulas()
-            ->each(function (\App\Models\Formula $formula) {
-                $this->info(sprintf('Checking %s ...', $formula->getAttribute('name')));
+        $this->formulas()->each(function (FormulaModel $formula) {
+            $this->info(sprintf('Checking formula %s...', $formula->name));
 
-                // update the formula's information to latest status
-                $formula->update(array_merge(
-                    $this->watchdog($formula),
-                    ['checked_at' => Carbon::now()]
-                ));
-            });
+            // update the formula's information to latest status
+            $formula->update(array_merge(
+                $this->watchdog($formula),
+                ['checked_at' => now()]
+            ));
+        });
     }
 
     /**
      * Get formulas model.
      *
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @return Collection
      */
-    protected function formulas()
+    protected function formulas(): Collection
     {
-        $formulas = $this->option('formula');
+        $name = $this->option('formula');
+
+        $query = $this->formula->newQuery();
 
         // if formula option is not set, return all formulas
-        if (empty($formulas)) {
-            return $this->formula->where('enable', true)->get();
+        if (empty($name)) {
+            return $query->where('enable', '=', true)->get();
         }
 
         // get specific formulas
-        return $this->formula->whereIn('name', $formulas)->get();
+        return $query->where('name', '=', $name)->get();
     }
 
     /**
      * Get formula latest release info.
      *
-     * @param \App\Models\Formula $formula
+     * @param FormulaModel $formula
      *
      * @return array
      */
-    protected function watchdog(\App\Models\Formula $formula)
+    protected function watchdog(FormulaModel $formula)
     {
         // get the formula's checker
         $checker = $this->checker($formula);
@@ -72,13 +73,14 @@ class Check extends Formula
         // check the formula has new release or not
         $latest = $checker->latest();
 
+        // get formatted current formula version in database
+        $current = $checker->version($formula->version);
+
         // if there is new release, set up variables
-        if (Comparator::greaterThan($checker->version($latest), $checker->version($formula->getAttribute('version')))) {
-            // update version
-            $version = $latest;
+        if (Comparator::greaterThan($checker->version($latest), $current)) {
+            return ['version' => $latest];
         }
 
-        // return all information as an associative array
-        return compact('version');
+        return [];
     }
 }
