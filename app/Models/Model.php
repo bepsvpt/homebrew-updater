@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use Eloquent;
+use Illuminate\Database\Eloquent\Model as BaseModel;
 
-class Model extends Eloquent
+class Model extends BaseModel
 {
     /**
      * The number of models to return for pagination.
@@ -19,14 +19,4 @@ class Model extends Eloquent
      * @var array
      */
     protected $guarded = [];
-
-    /**
-     * Get the table associated with the model.
-     *
-     * @return string
-     */
-    public static function getTableName()
-    {
-        return (new static)->getTable();
-    }
 }

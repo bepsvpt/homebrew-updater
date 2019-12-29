@@ -2,6 +2,15 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+/**
+ * @property int $formula_id
+ * @property string $sha
+ * @property Carbon $committed_at
+ * @property Formula $formula
+ */
 class Commit extends Model
 {
     /**
@@ -42,9 +51,9 @@ class Commit extends Model
     /**
      * Get the formula that owns the commit.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     * @return BelongsTo
      */
-    public function formula()
+    public function formula(): BelongsTo
     {
         return $this->belongsTo(Formula::class);
     }

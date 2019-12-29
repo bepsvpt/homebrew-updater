@@ -2,8 +2,26 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Arr;
 
+/**
+ * @property string $name
+ * @property string $repo
+ * @property string $checker
+ * @property array|null $git
+ * @property string|null $version
+ * @property string|null $archive
+ * @property string|null $pull_request
+ * @property boolean $enable
+ * @property Carbon $checked_at
+ * @property array|null $revision
+ * @property array|null $dependent
+ * @property Collection|Commit[] $commits
+ */
 class Formula extends Model
 {
     use Notifiable;
@@ -44,11 +62,11 @@ class Formula extends Model
     public function getArchiveUrlAttribute($version = null)
     {
         $pairs = [
-            '{name}' => array_last(explode('/', $this->getAttribute('name'))),
-            '{version}' => $version ?: $this->getAttribute('version'),
+            '{name}' => Arr::last(explode('/', $this->name)),
+            '{version}' => $version ?: $this->version,
         ];
 
-        return strtr($this->getAttribute('archive'), $pairs);
+        return strtr($this->archive, $pairs);
     }
 
     /**
@@ -64,9 +82,9 @@ class Formula extends Model
     /**
      * Get the commits for the formula.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     * @return HasMany
      */
-    public function commits()
+    public function commits(): HasMany
     {
         return $this->hasMany(Commit::class);
     }
