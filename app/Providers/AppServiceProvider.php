@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Formula;
+use App\Observers\FormulaObserver;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -13,30 +15,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        if (! $this->app->environment('production')) {
-            $this->app->register(\Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider::class);
-        }
-
-        $this->observe();
-    }
-
-    /**
-     * Register observers with models.
-     *
-     * @return void
-     */
-    protected function observe()
-    {
-        \App\Models\Formula::observe(\App\Observers\FormulaObserver::class);
-    }
-
-    /**
-     * Register any application services.
-     *
-     * @return void
-     */
-    public function register()
-    {
-        //
+        Formula::observe(FormulaObserver::class);
     }
 }

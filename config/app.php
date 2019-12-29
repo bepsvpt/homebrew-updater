@@ -169,15 +169,12 @@ return [
          * Package Service Providers...
          */
 
-        GrahamCampbell\GitHub\GitHubServiceProvider::class,
         Laravel\Tinker\TinkerServiceProvider::class,
 
         /*
          * Application Service Providers...
          */
         App\Providers\AppServiceProvider::class,
-        App\Providers\AuthServiceProvider::class,
-        App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
 
     ],
@@ -227,8 +224,6 @@ return [
         'URL' => Illuminate\Support\Facades\URL::class,
         'Validator' => Illuminate\Support\Facades\Validator::class,
         'View' => Illuminate\Support\Facades\View::class,
-
-        'GitHub' => GrahamCampbell\GitHub\Facades\GitHub::class,
 
     ],
 
