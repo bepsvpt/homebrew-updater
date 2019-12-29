@@ -296,11 +296,13 @@ class CommitGit
     {
         $this->cmd('git add --all');
 
-        $this->cmd(sprintf(
-            'git commit --message "%s %s"',
-            $this->name(),
-            $this->formula->version
-        ));
+        $temp = tempnam(sys_get_temp_dir(), 'homebrew-updater-');
+
+        file_put_contents($temp, sprintf('%s %s', $this->name(), $this->formula->version));
+
+        $this->cmd(sprintf('git commit --file %s', $temp));
+
+        unlink($temp);
 
         return $this;
     }
