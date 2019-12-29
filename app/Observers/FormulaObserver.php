@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\Formula;
 use App\Jobs\CommitGit;
 use App\Notifications\FormulaReleased;
+use Illuminate\Support\Str;
 
 class FormulaObserver
 {
@@ -15,7 +16,7 @@ class FormulaObserver
      *
      * @return void
      */
-    public function updated(Formula $formula)
+    public function updated(Formula $formula): void
     {
         // get formula modified fields
         $dirties = $formula->getDirty();
@@ -39,12 +40,15 @@ class FormulaObserver
      *
      * @return bool
      */
-    protected function shouldCommit(Formula $formula)
+    protected function shouldCommit(Formula $formula): bool
     {
-        // when there is no repo path or it is non production release, we will not commit it
-        if (str_contains(mb_strtolower($formula->getAttribute('version')), ['rc', 'beta', 'alpha', 'dev'])) {
+        $ignores = ['rc', 'beta', 'alpha', 'dev'];
+
+        // when there is no repo path or it is non
+        // stable release, we just ignore it.
+        if (Str::contains(mb_strtolower($formula->version), $ignores)) {
             return false;
-        } elseif (! $formula->getAttribute('git')['path']) {
+        } elseif (!$formula->git['path']) {
             return false;
         }
 
