@@ -14,7 +14,7 @@ class FormulaReleased extends Notification
      *
      * @return array
      */
-    public function via()
+    public function via(): array
     {
         return ['slack'];
     }
@@ -26,7 +26,7 @@ class FormulaReleased extends Notification
      *
      * @return SlackMessage
      */
-    public function toSlack(Formula $formula)
+    public function toSlack(Formula $formula): SlackMessage
     {
         $formula = $formula->fresh();
 
@@ -47,7 +47,7 @@ class FormulaReleased extends Notification
      *
      * @return array
      */
-    protected function fields(Formula $formula)
+    protected function fields(Formula $formula): array
     {
         return [
             'Version' => $formula->version,
