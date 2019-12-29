@@ -2,21 +2,25 @@
 
 namespace App\Console\Commands\Formulas;
 
+use App\Checkers\Checker;
+use App\Models\Formula as FormulaModel;
 use Illuminate\Console\Command;
 
 abstract class Formula extends Command
 {
     /**
-     * @var \App\Models\Formula
+     * Formula eloquent model instance.
+     *
+     * @var FormulaModel
      */
     protected $formula;
 
     /**
      * Create a new command instance.
      *
-     * @param \App\Models\Formula $formula
+     * @param FormulaModel $formula
      */
-    public function __construct(\App\Models\Formula $formula)
+    public function __construct(FormulaModel $formula)
     {
         parent::__construct();
 
@@ -26,22 +30,22 @@ abstract class Formula extends Command
     /**
      * Instance the checker or get class name.
      *
-     * @param \App\Models\Formula|string $formula
+     * @param FormulaModel|string $formula
      * @param bool $instance
      *
-     * @return \App\Checkers\Checker|string
+     * @return Checker|string
      */
     protected function checker($formula, $instance = true)
     {
-        $class = 'App\Checkers\\';
+        $class = 'App\Checkers\%s';
 
         // if $formula is string, we just return the full namespace
         if (is_string($formula)) {
-            return $class.$formula;
+            return sprintf($class, $formula);
         }
 
         // otherwise, we use `checker` attribute
-        $class .= $formula->getAttribute('checker');
+        $class = sprintf($class, $formula->checker);
 
         // return full namespace or instance the class
         return $instance ? new $class($formula) : $class;
