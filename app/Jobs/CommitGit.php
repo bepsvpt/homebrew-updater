@@ -300,7 +300,7 @@ class CommitGit
 
         file_put_contents($temp, sprintf('%s %s', $this->name(), $this->formula->version));
 
-        $this->cmd(sprintf('git commit --file %s', $temp));
+        $this->cmd(sprintf('git commit --author="homebrew-updater<bepsvpt/homebrew-updater>" --file %s', $temp));
 
         unlink($temp);
 
