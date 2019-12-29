@@ -390,6 +390,8 @@ Debug Info:
 - formula fetch time: {$this->debug['file']['fetch']} seconds
 
 Pull request opened by [homebrew-updater](https://github.com/bepsvpt/homebrew-updater) project.
+
+Open a new [issue](https://github.com/bepsvpt/homebrew-updater/issues) to monitor new formula.
 EOF;
     }
 
