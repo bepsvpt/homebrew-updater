@@ -17,12 +17,13 @@
     "composer/semver": "1.5.*",
     "doctrine/dbal": "2.10.*",
     "fideloper/proxy": "4.2.*",
-    "graham-campbell/github": "8.4.*",
     "guzzlehttp/guzzle": "6.5.*",
+    "knplabs/github-api": "2.12.*",
     "laravel/framework": "^6.9",
     "laravel/slack-notification-channel": "^2.0",
     "laravel/tinker": "2.0.*",
     "league/uri": "6.0.*",
+    "php-http/guzzle6-adapter": "2.0.*",
     "symfony/process": "4.4.*"
   },
   "require-dev": {
