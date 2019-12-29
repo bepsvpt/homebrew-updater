@@ -20,6 +20,7 @@
     "graham-campbell/github": "8.4.*",
     "guzzlehttp/guzzle": "6.5.*",
     "laravel/framework": "^6.9",
+    "laravel/slack-notification-channel": "^2.0",
     "laravel/tinker": "2.0.*",
     "league/uri": "6.0.*",
     "symfony/process": "4.4.*"

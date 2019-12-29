@@ -35,7 +35,7 @@ class FormulaReleased extends Notification
             ->content('Formula New Release!')
             ->attachment(function (SlackAttachment $attachment) use ($formula) {
                 $attachment
-                    ->title($formula->getAttribute('name'), 'https://github.com/'.$formula->getAttribute('repo'))
+                    ->title($formula->name, 'https://github.com/'.$formula->repo)
                     ->fields($this->fields($formula));
             });
     }
@@ -50,9 +50,9 @@ class FormulaReleased extends Notification
     protected function fields(Formula $formula)
     {
         return [
-            'Version' => $formula->getAttribute('version'),
-            'Checked at' => $formula->getAttribute('checked_at')->toDateTimeString(),
-            'Last PR' => $formula->getAttribute('pull_request'),
+            'Version' => $formula->version,
+            'Checked at' => $formula->checked_at->toDateTimeString(),
+            'Last PR' => $formula->pull_request,
         ];
     }
 }
