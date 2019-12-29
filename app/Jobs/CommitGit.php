@@ -62,9 +62,7 @@ class CommitGit
 
         $this->cwd = $this->formula->git['path'];
 
-        $this->github = new GithubClient;
-
-        $this->github->authenticate(config('services.github.token'), 'http_token');
+        $this->github = app('github');
     }
 
     /**

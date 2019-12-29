@@ -5,7 +5,7 @@ namespace App\Checkers;
 use App\Models\Commit;
 use App\Models\Formula;
 use Carbon\Carbon;
-use Github\Client as GithubClient;
+use Github\Client;
 use Github\ResultPager;
 use Illuminate\Support\Arr;
 
@@ -14,7 +14,7 @@ class Github extends Checker
     /**
      * GitHub client.
      *
-     * @var GithubClient
+     * @var Client
      */
     protected $github;
 
@@ -34,14 +34,9 @@ class Github extends Checker
     {
         parent::__construct($formula);
 
-        $this->github = new GithubClient;
+        $this->github = app('github');
 
-        $this->github->authenticate(
-            config('services.github.token'),
-            'http_token'
-        );
-
-        $this->paginator = new ResultPager($this->github);
+        $this->paginator = app('github.pager');
     }
 
     /**
