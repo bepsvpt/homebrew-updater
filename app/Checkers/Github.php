@@ -2,10 +2,12 @@
 
 namespace App\Checkers;
 
+use App\Models\Commit;
 use App\Models\Formula;
 use Carbon\Carbon;
 use Github\Client as GithubClient;
 use Github\ResultPager;
+use Illuminate\Support\Arr;
 
 class Github extends Checker
 {
@@ -34,20 +36,24 @@ class Github extends Checker
 
         $this->github = new GithubClient;
 
-        $this->github->authenticate(config('services.github.token'), 'http_token');
+        $this->github->authenticate(
+            config('services.github.token'),
+            'http_token'
+        );
 
         $this->paginator = new ResultPager($this->github);
     }
 
     /**
-     * Get repository latest version. If there is no release, return null.
+     * Get repository latest version.
+     * Return null when no release.
      *
      * @return string|null
      */
-    public function latest()
+    public function latest(): ?string
     {
         // if version property has been set, return it immediately
-        if (! is_null($this->version)) {
+        if (!is_null($this->version)) {
             return $this->version;
         }
 
@@ -57,7 +63,7 @@ class Github extends Checker
         }
 
         // transform the version and return it
-        return $this->version = $this->version(array_first($tags)['name']);
+        return $this->version = $this->version(Arr::first($tags)['name']);
     }
 
     /**
@@ -65,45 +71,54 @@ class Github extends Checker
      *
      * @return array
      */
-    protected function tags()
+    protected function tags(): array
     {
         // get formula tags
         $tags = $this->paginator->fetchAll(
             $this->github->repos(),
             'tags',
-            explode('/', $this->formula->getAttribute('repo'))
+            explode('/', $this->formula->repo)
         );
 
         // add date field to repo tags
-        $tags = $this->withDate($tags);
+        $this->withDate($tags);
 
         // sort tags by date field
         usort($tags, function ($a, $b) {
             return $b['date'] <=> $a['date'];
         });
 
-        // return tags
         return $tags;
     }
 
     /**
-     * Add date info to repo tags.
+     * Because repo tags do not contain time info, we
+     * need to add it manually from related commit.
      *
      * @param array $tags
      *
-     * @return array
+     * @return void
      */
-    protected function withDate(array $tags)
+    protected function withDate(array &$tags): void
     {
-        return array_map(function ($tag) {
+        foreach ($tags as &$tag) {
+            // get tag commit sha
+            $sha = $tag['commit']['sha'];
+
             // get commit info from database or use github api
-            $commit = $this->formula->commits()->find($tag['commit']['sha']) ?: $this->commit($tag['commit']['sha']);
+            $commit = $this->formula->commits()->find($sha) ?: $this->commit($sha);
 
             // add date info to repo tag
-            $tag['date'] = $commit->getAttribute('committed_at')->toDateTimeString();
+            $tag['date'] = $commit->committed_at->toDateTimeString();
 
-            return $tag;
-        }, $tags);
+            // remove unused fields
+            unset(
+                $tag['zipball_url'],
+                $tag['tarball_url'],
+                $tag['commit'],
+                $tag['node_id']
+            );
+        }
     }
 
     /**
@@ -111,12 +126,12 @@ class Github extends Checker
      *
      * @param string $sha
      *
-     * @return \Illuminate\Database\Eloquent\Model
+     * @return Commit
      */
-    protected function commit($sha)
+    protected function commit(string $sha): Commit
     {
         // split repo to owner and name
-        $arguments = explode('/', $this->formula->getAttribute('repo'));
+        $arguments = explode('/', $this->formula->repo);
 
         // push sha to the end of the array
         array_push($arguments, $sha);
@@ -124,10 +139,17 @@ class Github extends Checker
         // get commit info
         $commit = $this->github->repos()->commits()->show(...$arguments);
 
-        // save to database and return Eloquent instance
+        // retrieve date from commit
+        $date = $commit['commit']['author']['date'];
+
+        // convert date to carbon instance
+        $committedAt = Carbon::parse($date, config('app.timezone'));
+
+        /** @noinspection PhpIncompatibleReturnTypeInspection */
+        // save and return eloquent model
         return $this->formula->commits()->create([
             'sha' => $sha,
-            'committed_at' => Carbon::parse($commit['commit']['author']['date'], config('app.timezone')),
+            'committed_at' => $committedAt,
         ]);
     }
 
@@ -138,15 +160,14 @@ class Github extends Checker
      *
      * @return string
      */
-    public function version($version)
+    public function version($version): string
     {
-        switch ($this->formula->getAttribute('name')) {
+        switch ($this->formula->name) {
             // RELEASE_4_7_0 → 4.7.0
             case 'homebrew/core/phpmyadmin':
                 return str_replace(['RELEASE_', '_'], ['', '.'], $version);
-
-            default:
-                return parent::version($version);
         }
+
+        return parent::version($version);
     }
 }

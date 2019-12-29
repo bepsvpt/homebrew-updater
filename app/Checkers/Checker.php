@@ -3,6 +3,7 @@
 namespace App\Checkers;
 
 use App\Models\Formula;
+use Illuminate\Support\Str;
 
 abstract class Checker
 {
@@ -29,14 +30,14 @@ abstract class Checker
     /**
      * Transform version name if necessary.
      *
-     * @param string|null $version
+     * @param string $version
      *
      * @return string
      */
-    public function version($version)
+    public function version($version): string
     {
         // v1.2.3 → 1.2.3
-        if (starts_with($version, ['v'])) {
+        if (Str::startsWith($version, ['v'])) {
             return substr($version, 1);
         }
 
@@ -44,9 +45,10 @@ abstract class Checker
     }
 
     /**
-     * Get repository latest version. If there is no release, return null.
+     * Get repository latest version.
+     * Return null when no release.
      *
      * @return string|null
      */
-    abstract public function latest();
+    abstract public function latest(): ?string;
 }
