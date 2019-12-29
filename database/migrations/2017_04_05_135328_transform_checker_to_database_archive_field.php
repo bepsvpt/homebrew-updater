@@ -2,7 +2,8 @@
 
 use App\Models\Formula;
 use Illuminate\Database\Migrations\Migration;
-use League\Uri\Schemes\Http;
+use Illuminate\Support\Str;
+use League\Uri\Http;
 
 class TransformCheckerToDatabaseArchiveField extends Migration
 {
@@ -107,15 +108,15 @@ class TransformCheckerToDatabaseArchiveField extends Migration
             $checker = null;
             $archive = $formula->getAttribute('archive');
 
-            if (ends_with($archive, 'archive/{version}.tar.gz')) {
+            if (Str::endsWith($archive, 'archive/{version}.tar.gz')) {
                 $checker = 'Github';
-            } elseif (ends_with($archive, 'archive/v{version}.tar.gz')) {
+            } elseif (Str::endsWith($archive, 'archive/v{version}.tar.gz')) {
                 $checker = 'GithubVersionPrefixV';
-            } elseif (ends_with($archive, 'releases/download/{version}/{name}.phar')) {
+            } elseif (Str::endsWith($archive, 'releases/download/{version}/{name}.phar')) {
                 $checker = 'Phar';
-            } elseif (ends_with($archive, 'releases/download/{version}/{name}-{version}.phar')) {
+            } elseif (Str::endsWith($archive, 'releases/download/{version}/{name}-{version}.phar')) {
                 $checker = 'PharFilenameWithVersion';
-            } elseif (ends_with($archive, 'releases/download/v{version}/{name}.phar')) {
+            } elseif (Str::endsWith($archive, 'releases/download/v{version}/{name}.phar')) {
                 $checker = 'PharVersionPrefixV';
             } else {
                 switch ($formula->getAttribute('name')) {
