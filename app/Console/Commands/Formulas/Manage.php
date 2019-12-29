@@ -2,7 +2,9 @@
 
 namespace App\Console\Commands\Formulas;
 
-use DB;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class Manage extends Formula
 {
@@ -80,7 +82,7 @@ class Manage extends Formula
         $f = $formula->getAttributes();
 
         // if formula's name is homebrew/xxx/zzz, we only need `zzz`
-        $formula->setAttribute('name', array_last(explode('/', $f['name'])));
+        $formula->setAttribute('name', Arr::last(explode('/', $f['name'])));
     }
 
     /**
@@ -173,9 +175,9 @@ class Manage extends Formula
 
         // if the path starts with `~/`, we assume it starts from home directory
         // if the path starts with `.`, we assume it starts from this project base directory
-        if (starts_with($repo, '~/')) {
+        if (Str::startsWith($repo, '~/')) {
             $repo = $_SERVER['HOME'].'/'.substr($repo, 2);
-        } elseif (starts_with($repo, '.')) {
+        } elseif (Str::startsWith($repo, '.')) {
             $repo = base_path($repo);
         }
 
