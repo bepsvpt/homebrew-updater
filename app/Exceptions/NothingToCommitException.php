@@ -2,7 +2,9 @@
 
 namespace App\Exceptions;
 
-class NothingToCommitException extends \RuntimeException
+use RuntimeException;
+
+class NothingToCommitException extends RuntimeException
 {
     //
 }
