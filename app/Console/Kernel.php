@@ -13,23 +13,32 @@ class Kernel extends ConsoleKernel
      * @var array
      */
     protected $commands = [
-        Commands\Formulas\Check::class,
-        Commands\Formulas\Manage::class,
-        Commands\Upstreams\Sync::class,
+        //
     ];
 
     /**
      * Define the application's command schedule.
      *
-     * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
+     * @param Schedule $schedule
+     *
      * @return void
      */
-    protected function schedule(Schedule $schedule)
+    protected function schedule(Schedule $schedule): void
     {
         // sync local repos twice a day
         $schedule->command('upstream:sync')->twiceDaily();
 
         // check formulas every hour
         $schedule->command('formula:check')->hourly();
+    }
+
+    /**
+     * Register the commands for the application.
+     *
+     * @return void
+     */
+    protected function commands(): void
+    {
+        $this->load(__DIR__ . '/Commands');
     }
 }
