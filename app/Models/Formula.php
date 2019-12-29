@@ -15,6 +15,7 @@ use Illuminate\Support\Arr;
  * @property array|null $git
  * @property string|null $version
  * @property string|null $archive
+ * @property string $archive_url
  * @property string|null $pull_request
  * @property boolean $enable
  * @property Carbon $checked_at
