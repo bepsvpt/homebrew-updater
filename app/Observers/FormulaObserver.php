@@ -42,7 +42,7 @@ class FormulaObserver
      */
     protected function shouldCommit(Formula $formula): bool
     {
-        $ignores = ['rc', 'beta', 'alpha', 'dev'];
+        $ignores = ['rc', 'beta', 'alpha', 'dev', 'pre'];
 
         // when there is no repo path or it is non
         // stable release, we just ignore it.
