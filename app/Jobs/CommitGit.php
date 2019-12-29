@@ -330,7 +330,7 @@ class CommitGit
             return $this;
         }
 
-        $arguments = $this->formula->git['upstream'];
+        $arguments = array_values($this->formula->git['upstream']);
 
         array_push($arguments, Arr::last(explode('/', $prUrl)));
 
