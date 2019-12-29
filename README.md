@@ -1,5 +1,7 @@
 # Homebrew Updater
 
+[![Actions Status](https://github.com/bepsvpt/homebrew-updater/workflows/PHPUnit/badge.svg)](https://github.com/bepsvpt/homebrew-updater/actions)
+
 Automatically check release of homebrew formulas.
 
 ## Requirements
