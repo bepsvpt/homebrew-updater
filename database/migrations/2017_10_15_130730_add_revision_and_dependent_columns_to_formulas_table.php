@@ -28,6 +28,9 @@ class AddRevisionAndDependentColumnsToFormulasTable extends Migration
     {
         Schema::table('formulas', function (Blueprint $table) {
             $table->dropColumn('revision');
+        });
+
+        Schema::table('formulas', function (Blueprint $table) {
             $table->dropColumn('dependent');
         });
     }
