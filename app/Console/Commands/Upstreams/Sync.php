@@ -4,7 +4,9 @@ namespace App\Console\Commands\Upstreams;
 
 use App\Models\Formula;
 use Illuminate\Console\Command;
-use TQ\Git\Repository\Repository;
+use Illuminate\Support\Collection;
+use Symfony\Component\Process\Exception\ProcessFailedException;
+use Symfony\Component\Process\Process;
 
 class Sync extends Command
 {
@@ -23,41 +25,54 @@ class Sync extends Command
     protected $description = 'Sync local repositories to remote tracked repositories';
 
     /**
+     * Git command execute cwd.
+     *
+     * @var string|null
+     */
+    protected $cwd = null;
+
+    /**
      * Execute the console command.
      *
-     * @return mixed
+     * @return void
      */
-    public function handle()
+    public function handle(): void
     {
         foreach ($this->upstreams() as $repo) {
-            // retrieve repo path in filesystem
-            $repository = Repository::open($repo['path'], $this->binary());
+            $this->cwd = $repo['path'];
 
             // checkout git repo to master branch
-            $repository->getGit()->{'checkout'}($repository->getRepositoryPath(), ['master']);
+            $this->cmd('git checkout master');
 
-            // ensure the repo has remote tracked repository which name is upstream
-            if (! isset($repository->getCurrentRemote()['upstream'])) {
-                $this->setUpUpstream($repo['upstream'], $repository);
+            try {
+                // ensure repo has remote upstream
+                $this->cmd('git remote get-url upstream');
+            } catch (ProcessFailedException $e) {
+                // setup remote upstream
+                $this->cmd(sprintf(
+                    'git remote add upstream https://github.com/%s/%s',
+                    $repo['upstream']['owner'],
+                    $repo['upstream']['repo']
+                ));
             }
 
             // fetch upstream master branch to local
-            $repository->getGit()->{'fetch'}($repository->getRepositoryPath(), ['upstream', 'master']);
+            $this->cmd('git fetch upstream master');
 
             // rebase upstream/master to local master branch
-            $repository->getGit()->{'rebase'}($repository->getRepositoryPath(), ['upstream/master']);
+            $this->cmd('git rebase upstream/master');
 
             // push local master branch to GitHub
-            $repository->getGit()->{'push'}($repository->getRepositoryPath(), ['origin', 'master']);
+            $this->cmd('git push origin master');
         }
     }
 
     /**
      * Get all formulas unique git upstreams.
      *
-     * @return \Illuminate\Support\Collection
+     * @return Collection
      */
-    protected function upstreams()
+    protected function upstreams(): Collection
     {
         return Formula::all('git')
             ->pluck('git')
@@ -65,31 +80,16 @@ class Sync extends Command
     }
 
     /**
-     * Set up upstream for the repository.
+     * Execute command.
      *
-     * @param array $upstream
-     * @param Repository $repository
-     */
-    protected function setUpUpstream($upstream, Repository $repository)
-    {
-        $upstream = sprintf('https://github.com/%s/%s', $upstream['owner'], $upstream['repo']);
-
-        $arguments = ['add', 'upstream', $upstream];
-
-        $repository->getGit()->{'remote'}($repository->getRepositoryPath(), $arguments);
-    }
-
-    /**
-     * Git binary file.
+     * @param string $cmd
      *
-     * @return string
+     * @return Process
+     *
+     * @throws ProcessFailedException
      */
-    protected function binary()
+    protected function cmd(string $cmd): Process
     {
-        if (is_file('/usr/local/bin/git')) {
-            return '/usr/local/bin/git';
-        }
-
-        return '/usr/bin/git';
+        return (new Process(explode(' ', $cmd), $this->cwd))->mustRun();
     }
 }
