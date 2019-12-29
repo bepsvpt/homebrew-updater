@@ -170,6 +170,8 @@ class TransformCheckerToDatabaseArchiveField extends Migration
     /**
      * Get repository name.
      *
+     * @param Formula $formula
+     *
      * @return string
      */
     protected function repo(Formula $formula)
