@@ -4,38 +4,52 @@ namespace App\Jobs;
 
 use App\Exceptions\NothingToCommitException;
 use App\Models\Formula;
-use DB;
-use GitHub;
+use Github\Client as GithubClient;
+use Github\Exception\MissingArgumentException;
+use GuzzleHttp\Client;
 use Illuminate\Queue\SerializesModels;
-use Log;
-use SebastianBergmann\Git\Git;
-use TQ\Git\Repository\Repository;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Symfony\Component\Process\Exception\ProcessFailedException;
+use Symfony\Component\Process\Process;
 
 class CommitGit
 {
     use SerializesModels;
 
     /**
+     * Formula model instance.
+     *
      * @var Formula
      */
     protected $formula;
 
     /**
-     * @var Git
-     */
-    protected $git;
-
-    /**
-     * @var Repository
-     */
-    protected $repository;
-
-    /**
-     * Hash Algorithm.
+     * Git repo path.
      *
      * @var string
      */
-    protected $hash = 'sha256';
+    protected $cwd;
+
+    /**
+     * Github api client.
+     *
+     * @var GithubClient
+     */
+    protected $github;
+
+    /**
+     * Debug info.
+     *
+     * @var array
+     */
+    protected $debug = [
+        'file' => [
+            'size' => 0,
+            'fetch' => 0,
+        ],
+    ];
 
     /**
      * Create a new job instance.
@@ -46,17 +60,21 @@ class CommitGit
     {
         $this->formula = $formula;
 
-        $this->git = new Git($this->formula->getAttribute('git')['path']);
+        $this->cwd = $this->formula->git['path'];
 
-        $this->repository = Repository::open($this->formula->getAttribute('git')['path'], $this->binary());
+        $this->github = new GithubClient;
+
+        $this->github->authenticate(config('services.github.token'), 'http_token');
     }
 
     /**
      * Execute the job.
      *
      * @return void
+     *
+     * @throws MissingArgumentException
      */
-    public function handle()
+    public function handle(): void
     {
         try {
             // checkout homebrew repo to master branch
@@ -74,15 +92,15 @@ class CommitGit
                 // push commit new remote tracked repository
                 ->pushCommit()
                 // close last pull request if it still open
-                ->closeLastPullRequest()
+                ->closeLastOpenPullRequest()
                 // create pull request to homebrew project
                 ->openPullRequest()
                 // checkout homebrew repo to master branch
                 ->master();
         } catch (NothingToCommitException $e) {
             Log::error('nothing-to-commit', [
-                'formula' => $this->formula->getAttribute('name'),
-                'version' => $this->formula->getAttribute('version'),
+                'formula' => $this->formula->name,
+                'version' => $this->formula->version,
             ]);
 
             // revert changes
@@ -95,9 +113,9 @@ class CommitGit
      *
      * @return $this
      */
-    protected function master()
+    protected function master(): self
     {
-        $this->git->checkout('master');
+        $this->cmd('git checkout master');
 
         return $this;
     }
@@ -107,11 +125,9 @@ class CommitGit
      *
      * @return $this
      */
-    protected function createBranch()
+    protected function createBranch(): self
     {
-        $branch = sprintf('-b %s', $this->branchName());
-
-        $this->git->checkout($branch);
+        $this->cmd(sprintf('git checkout -b %s', $this->branchName()));
 
         return $this;
     }
@@ -123,10 +139,13 @@ class CommitGit
      *
      * @return $this
      */
-    protected function modifyFormula($formula = null)
+    protected function modifyFormula($formula = null): self
     {
         // get formula path
-        $filename = sprintf('%s/%s.rb', $this->formula->getAttribute('git')['path'], $formula ?: mb_strtolower($this->name()));
+        $filename = sprintf('%s/%s.rb',
+            $this->cwd,
+            $formula ?: mb_strtolower($this->name())
+        );
 
         // get regex pattern
         $regex = $this->regex();
@@ -142,7 +161,7 @@ class CommitGit
 
         // if $count is zero, nothing change
         if (0 === $count) {
-            if (! is_null($formula)) {
+            if (!is_null($formula)) {
                 Log::error('dependent-nothing-to-commit', compact('formula'));
 
                 return $this;
@@ -162,15 +181,9 @@ class CommitGit
      *
      * @return array
      */
-    protected function regex()
+    protected function regex(): array
     {
-        static $hash = null;
-
-        $url = $this->formula->getAttribute('archive_url');
-
-        if (is_null($hash)) {
-            $hash = hash_remote($this->hash, $url);
-        }
+        $hash = $this->hashRemoteFile($this->formula->archive_url);
 
         $patterns = [
             '/url ".+"'.PHP_EOL.'/U',
@@ -178,7 +191,7 @@ class CommitGit
         ];
 
         $replacements = [
-            sprintf('url "%s"%s', $url, PHP_EOL),
+            sprintf('url "%s"%s', $this->formula->archive_url, PHP_EOL),
             sprintf('%s "%s"%s', 'sha256', $hash, PHP_EOL),
         ];
 
@@ -186,27 +199,49 @@ class CommitGit
     }
 
     /**
+     * Get remote file hash.
+     *
+     * @param string $url
+     *
+     * @return string|null
+     */
+    protected function hashRemoteFile(string $url): ?string
+    {
+        $time = microtime(true);
+
+        $response = (new Client)->get($url, ['http_errors' => false]);
+
+        $this->debug['file']['fetch'] = number_format(microtime(true) - $time, 1);
+
+        if ($response->getStatusCode() !== 200) {
+            return null;
+        }
+
+        $this->debug['file']['size'] = number_format($response->getBody()->getSize());
+
+        return hash('sha256', $response->getBody()->getContents());
+    }
+
+    /**
      * Modify revision formulas revision.
      *
      * @return $this
      */
-    protected function modifyRevision()
+    protected function modifyRevision(): self
     {
-        $formulas = $this->formula->getAttribute('revision');
+        $formulas = $this->formula->revision;
 
         if (is_null($formulas) || empty($formulas)) {
             return $this;
         }
 
-        $path = $this->formula->getAttribute('git')['path'];
-
         foreach ($formulas as $formula) {
-            $filename = sprintf('%s/%s.rb', $path, $formula);
+            $filename = sprintf('%s/%s.rb', $this->cwd, $formula);
 
             $content = file_get_contents($filename);
 
             if (false === ($pos = mb_strpos($content, 'revision'))) {
-                $revision = '  revision 1'.PHP_EOL;
+                $revision = ' revision 1'.PHP_EOL;
 
                 // (sha256 "xxx").length + new line
                 $begin = $end = mb_strpos($content, 'sha256') + 74;
@@ -239,9 +274,9 @@ class CommitGit
      *
      * @return $this
      */
-    protected function modifyDependent()
+    protected function modifyDependent(): self
     {
-        $formulas = $this->formula->getAttribute('dependent');
+        $formulas = $this->formula->dependent;
 
         if (is_null($formulas) || empty($formulas)) {
             return $this;
@@ -259,13 +294,15 @@ class CommitGit
      *
      * @return $this
      */
-    protected function commit()
+    protected function commit(): self
     {
-        $message = sprintf('%s %s', $this->name(), $this->formula->getAttribute('version'));
+        $this->cmd('git add --all');
 
-        $this->repository->add();
-
-        $this->repository->commit($message);
+        $this->cmd(sprintf(
+            'git commit --message "%s %s"',
+            $this->name(),
+            $this->formula->version
+        ));
 
         return $this;
     }
@@ -275,11 +312,9 @@ class CommitGit
      *
      * @return $this
      */
-    protected function pushCommit()
+    protected function pushCommit(): self
     {
-        $arguments = ['origin', $this->branchName()];
-
-        $this->repository->getGit()->{'push'}($this->repository->getRepositoryPath(), $arguments);
+        $this->cmd(sprintf('git push origin %s', $this->branchName()));
 
         return $this;
     }
@@ -289,25 +324,22 @@ class CommitGit
      *
      * @return $this
      */
-    protected function closeLastPullRequest()
+    protected function closeLastOpenPullRequest(): self
     {
-        if (is_null($prUrl = $this->formula->getAttribute('pull_request'))) {
+        if (is_null($prUrl = $this->formula->pull_request)) {
             return $this;
         }
 
-        $upstream = $this->formula->getAttribute('git')['upstream'];
+        $arguments = $this->formula->git['upstream'];
 
-        $prId = array_last(explode('/', $prUrl));
+        array_push($arguments, Arr::last(explode('/', $prUrl)));
 
-        $pullRequest = GitHub::pullRequests()->show($upstream['owner'], $upstream['repo'], $prId);
+        $pullRequest = $this->github->pullRequests()->show(...$arguments);
 
         if ('open' === $pullRequest['state']) {
-            GitHub::pullRequests()->update(
-                $upstream['owner'],
-                $upstream['repo'],
-                $prId,
-                ['state' => 'closed']
-            );
+            array_push($arguments, ['state' => 'closed']);
+
+            $this->github->pullRequests()->update(...$arguments);
         }
 
         return $this;
@@ -317,21 +349,24 @@ class CommitGit
      * Open a pull request for homebrew repository.
      *
      * @return $this
+     *
+     * @throws MissingArgumentException
      */
-    protected function openPullRequest()
+    protected function openPullRequest(): self
     {
-        $github = $this->formula->getAttribute('git');
+        $github = $this->formula->git;
 
-        $pullRequest = GitHub::pullRequests()
+        $pullRequest = $this->github
+            ->pullRequests()
             ->create($github['upstream']['owner'], $github['upstream']['repo'], [
-                'title' => sprintf('%s %s', $this->name(), $this->formula->getAttribute('version')),
-                'head'  => sprintf('%s:%s', $github['fork']['owner'], $this->branchName()),
-                'base'  => 'master',
-                'body'  => $this->pullRequestBody(),
+                'title' => sprintf('%s %s', $this->name(), $this->formula->version),
+                'head' => sprintf('%s:%s', $github['fork']['owner'], $this->branchName()),
+                'base' => 'master',
+                'body' => $this->pullRequestBody(),
             ]);
 
         DB::table('formulas')
-            ->where($this->formula->getKeyName(), $this->formula->getKey())
+            ->where($this->formula->getKeyName(), '=', $this->formula->getKey())
             ->update(['pull_request' => $pullRequest['html_url']]);
 
         return $this;
@@ -342,12 +377,19 @@ class CommitGit
      *
      * @return string
      */
-    protected function pullRequestBody()
+    protected function pullRequestBody(): string
     {
-        return <<<'EOF'
+        $version = json_decode(file_get_contents(base_path('composer.json')))->version;
+
+        return <<<EOF
 ---
 
-Pull request opened by [homebrew-updater](https://github.com/BePsvPT/homebrew-updater) project.
+Debug Info:
+- homebrew updater version: {$version}
+- formula new file size: {$this->debug['file']['size']} bytes
+- formula fetch time: {$this->debug['file']['fetch']} seconds
+
+Pull request opened by [homebrew-updater](https://github.com/bepsvpt/homebrew-updater) project.
 EOF;
     }
 
@@ -356,17 +398,13 @@ EOF;
      *
      * @return $this
      */
-    protected function revert()
+    protected function revert(): self
     {
         // checkout to master branch
         $this->master();
 
         // delete the branch that we created
-        $branch = sprintf('%s', $this->branchName());
-
-        $arguments = ['-D', $branch];
-
-        $this->repository->getGit()->{'branch'}($this->repository->getRepositoryPath(), $arguments);
+        $this->cmd(sprintf('git branch -D %s', $this->branchName()));
 
         return $this;
     }
@@ -376,34 +414,34 @@ EOF;
      *
      * @return string
      */
-    protected function branchName()
+    protected function branchName(): string
     {
         // branch name is combine with {repo-name}-{new-version}
-        return sprintf('%s-%s', $this->name(), $this->formula->getAttribute('version'));
+        return sprintf('%s-%s', $this->name(), $this->formula->version);
     }
 
     /**
      * Get the formula name.
      *
-     * @return $this
+     * @return string
      */
-    protected function name()
+    protected function name(): string
     {
         // if formula's name is homebrew/xxx/zzz, we only need `zzz`
-        return array_last(explode('/', $this->formula->getAttribute('name')));
+        return Arr::last(explode('/', $this->formula->name));
     }
 
     /**
-     * Git binary file.
+     * Execute command.
      *
-     * @return string
+     * @param string $cmd
+     *
+     * @return Process
+     *
+     * @throws ProcessFailedException
      */
-    protected function binary()
+    protected function cmd(string $cmd): Process
     {
-        if (is_file('/usr/local/bin/git')) {
-            return '/usr/local/bin/git';
-        }
-
-        return '/usr/bin/git';
+        return (new Process(explode(' ', $cmd), $this->cwd))->mustRun();
     }
 }
